@@ -1,0 +1,5 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Inherits the shared preset: automerge off, 2 concurrent / 1 per hour, Monday before 06:00 UTC.",
+  "extends": ["github>Living-Proof-Labs/collaboration-guidelines:renovate-preset#v7.8.2"]
+}
