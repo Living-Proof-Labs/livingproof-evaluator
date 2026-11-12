@@ -263,14 +263,22 @@ def test_trial_number_is_a_short_non_negative_integer(trial: object) -> None:
     assert validate_document(document) == []
 
 
+def test_ampersand_in_descriptor_text_is_plain_text() -> None:
+    document = _scenario_with_icon()
+    document["evaluator"]["display_name"] = "R&D"
+    document["descriptor"]["title"] = "R&D"
+    document["descriptor"]["purpose"] = "Judges R&D trials and Q&A notes."
+    document["descriptor"]["findings"][0]["text"] = "The R&D limit was missed."
+    assert validate_document(document) == []
+
+
 @pytest.mark.parametrize(
     "text",
     [
         "<script>alert(1)</script>",
         "<b>bold</b>",
-        "a &amp; b",
-        "&#60;script&#62;",
         "3 < 5",
+        "3 > 5",
         "line\nbreak",
         "line\rbreak",
         "line\tbreak",

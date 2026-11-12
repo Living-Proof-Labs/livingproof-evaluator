@@ -28,7 +28,7 @@ Inside the object, `tier` is required. The other fields are optional. `findings`
 
 ## Fields
 
-All text is plain text. A consumer escapes it for display and does not interpret markup, entities, or embedded HTML. This contract also refuses to store markup: the characters `<`, `>`, and `&` are rejected, so a value cannot carry a tag or a character reference.
+All text is plain text. A consumer must escape every text field for display and must not interpret markup, entities, or embedded HTML. An ampersand is allowed, as in `R&D` or `Q&A`. It is plain text and must be escaped, not read as a character reference. The characters `<` and `>` are rejected, so a stored value cannot carry a tag.
 
 | Field | Required | Maximum | Meaning |
 | --- | --- | --- | --- |
@@ -56,7 +56,7 @@ The source note did not set lengths. Format 1.1 adds these maximums. They are ch
 
 Plain text also rejects ASCII controls (U+0000 through U+001F), DEL and the C1 controls (U+007F through U+009F), and the line separators U+2028 and U+2029. A newline is a control character and is rejected. A value that is only whitespace is rejected. Write two sentences in `purpose` as one stored string.
 
-An ampersand is rejected, including in a name such as a firm name that would otherwise use one. The stored value cannot carry `&amp;` or `&#60;`.
+An ampersand is allowed. `R&D` and `Q&A` validate. A consumer must escape `&` so it is shown as an ampersand. It is not decoded as an entity.
 
 ### Fields on each finding
 
@@ -164,7 +164,7 @@ The merged 1.0 result already has `evaluator.kind`, `evaluator.execution`, `eval
 
 **Problem copy.** Issue 13 says the descriptor carries success, problem, and details copy. The note has `success_copy`, `details_copy`, and `findings[].text`. Resolution: follow the note. There is no `problem_copy` field.
 
-**Text limits.** The note says the report escapes text and does not interpret markup. It does not set lengths or reject the characters. Resolution: 1.1 adds the maximums in the tables and rejects `<`, `>`, `&`, and the controls listed above, so the stored value cannot carry a tag or an entity. The report still escapes on display. This is stricter than storing arbitrary text, and it is part of the 1.1 contract.
+**Text limits.** The note says the report escapes text and does not interpret markup. It does not set lengths. Resolution: 1.1 adds the maximums in the tables and rejects `<`, `>`, and the controls listed above. An ampersand is allowed as plain text. Consumers must escape all text, including `&`, and must not interpret it as an entity.
 
 **Source art.** The example SVG files use a `title` element and, in one case, a hex stroke. Both are outside the subset. Resolution: fixtures use the same paths, rewritten into the subset, and say so. The original art is example data, not a second allowed icon format.
 
