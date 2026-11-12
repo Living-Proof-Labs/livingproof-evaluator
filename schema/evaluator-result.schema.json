@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/evaluator-result.schema.json",
+  "title": "livingproof-evaluator-result/1.0.0",
+  "description": "Shared result envelope. A scenario result carries step verdicts. An integrity result carries test-system status, success, percentage, and findings. An integrity result cannot include the scenario payload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "evaluator", "inputs", "timestamps"],
+  "properties": {
+    "format": {"const": "livingproof-evaluator-result/1.0.0"},
+    "evaluator": {
+      "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/evaluator"
+    },
+    "inputs": {
+      "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/inputs"
+    },
+    "timestamps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["started_at", "completed_at"],
+      "properties": {
+        "requested_at": false,
+        "started_at": {
+          "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/timestamp"
+        },
+        "completed_at": {
+          "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/timestamp"
+        }
+      }
+    },
+    "scenario": {
+      "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/scenario/result.schema.json"
+    },
+    "integrity": {
+      "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/result.schema.json"
+    },
+    "verdict": false,
+    "grade": false
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evaluator": {
+            "properties": {"kind": {"const": "integrity"}},
+            "required": ["kind"]
+          }
+        },
+        "required": ["evaluator"]
+      },
+      "then": {
+        "required": ["integrity"],
+        "properties": {"scenario": false}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evaluator": {
+            "properties": {"kind": {"const": "scenario"}},
+            "required": ["kind"]
+          }
+        },
+        "required": ["evaluator"]
+      },
+      "then": {
+        "required": ["scenario"],
+        "properties": {"integrity": false}
+      }
+    }
+  ]
+}

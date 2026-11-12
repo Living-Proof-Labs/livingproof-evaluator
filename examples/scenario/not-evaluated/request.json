@@ -1,0 +1,71 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-scenario",
+    "version": "1.0.0",
+    "kind": "scenario",
+    "execution": "deterministic",
+    "display_name": "Scenario",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "recording",
+      "uri": "recordings/trial-01.mcap",
+      "sha256": "a6a843b45a462ddb62bf01854077792b2472cd0c883f0207a17c878c90de3fd0"
+    },
+    {
+      "role": "binding",
+      "uri": "binding.json",
+      "sha256": "edf1a4c94172282a52287148d1f0e27bf4aecce27cf7a47e27342be2201099e4"
+    },
+    {
+      "role": "scenario",
+      "uri": "scenario.json",
+      "sha256": "b869ab1ee39e481ab89d15921d6b41adb4885b1fbfa439d20ac7b8f32722b271"
+    },
+    {
+      "role": "manifest",
+      "uri": "run/manifest.json",
+      "sha256": "f08c8a2f0c578e8d93c7ec9ef358ea191195049e2e975a2ef66f1011b69a0ad8"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-12T03:40:00Z"
+  },
+  "scenario": {
+    "trial_id": "trial-01",
+    "scenario": {
+      "id": "walk-hallway",
+      "steps": [
+        {
+          "id": "reach-the-exit",
+          "text": "the base enters place \"exit\" within 30 seconds",
+          "known": true,
+          "observable": "base",
+          "bound": true
+        },
+        {
+          "id": "backflip",
+          "text": "the robot does a backflip",
+          "known": false
+        },
+        {
+          "id": "tail-clearance",
+          "text": "the tail stays above the floor",
+          "known": true,
+          "observable": "tail",
+          "bound": false
+        }
+      ]
+    },
+    "binding": {
+      "bound_observables": [
+        "base",
+        "base_height",
+        "body_contact"
+      ]
+    }
+  }
+}

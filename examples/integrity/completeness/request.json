@@ -1,0 +1,221 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "3b51870fe838385ed8dbd70fca541cd2b199093afd3112fe477dd160feece3b6"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "22f80769d44330ed99741488e6b0300643d3b1852abf3ad28c31b2f407fb7d52"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-12T03:40:00Z"
+  },
+  "integrity": {
+    "manifest": {
+      "id": "example-completeness",
+      "deterministic": true,
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      },
+      "planned_trials": [
+        {
+          "id": "trial-complete"
+        },
+        {
+          "id": "trial-missing-recording"
+        },
+        {
+          "id": "trial-missing-observations"
+        },
+        {
+          "id": "trial-truncated-recording"
+        },
+        {
+          "id": "trial-truncated-observations"
+        },
+        {
+          "id": "trial-empty-recording"
+        },
+        {
+          "id": "trial-empty-observations"
+        },
+        {
+          "id": "trial-timeout"
+        },
+        {
+          "id": "trial-crash"
+        },
+        {
+          "id": "trial-absent"
+        }
+      ]
+    },
+    "lock": {
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      }
+    },
+    "trials": [
+      {
+        "id": "trial-complete",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "present",
+          "sha256": "90c0767313e95d7861153d0dffeb9b2c4924f1d8e0881518ebffdef639c17267"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-missing-recording",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "missing"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-missing-observations",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "present",
+          "sha256": "3669b98f7da6c676e63ae0a1d85b1744f89100a086e54a6de1b1fa1ddb0b9a86"
+        },
+        "observations": {
+          "state": "missing"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-truncated-recording",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "truncated",
+          "sha256": "ccfb1f16753814439562527eef0d859985cf00ad3ceef4064e89b00613542ef6"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-truncated-observations",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "present",
+          "sha256": "6331371b4d4e268d2120da122c6d094089fb738f7528b3a2431c42bbfab009f8"
+        },
+        "observations": {
+          "state": "truncated"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-empty-recording",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "empty"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-empty-observations",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "present",
+          "sha256": "77cd9f5396465d1301e5d292e821f7fa1e1fb74e450467d40d28eef21929e67a"
+        },
+        "observations": {
+          "state": "empty"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-timeout",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "present",
+          "sha256": "974494e72d9aefefaf6da402a3e555fb9c984b5eb0cb68ab6c02c1cf9611c922"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "timeout"
+      },
+      {
+        "id": "trial-crash",
+        "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
+        "recording": {
+          "state": "present",
+          "sha256": "02b95eb1f9ba9a12d9b999355565496962252d7c4eb097df73ff407a998bdfe4"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "crash"
+      }
+    ]
+  }
+}
