@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: Apache-2.0
+# Pull requests only, so this workflow does not run on main and does not publish Pages.
+# This repository has no published development image. Until one exists, this job is
+# the documented fallback: GitHub-hosted ubuntu-24.04, the pinned uv setup action,
+# and Task 3.54.0, running the same `task setup` and `task verify` commands as a
+# local checkout. Publishing the image needs owner approval and is outside this
+# contract change, so this change does not open a tracking issue.
+name: Verify
+on:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: write
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      # sha256 of actionlint_1.7.12_linux_amd64.tar.gz from the release checksums.
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          python-version: "3.12"
+      - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: "3.54.0"
+      - run: task setup
+      - run: task verify
+      - name: Publish test results
+        id: report
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
+        with:
+          name: Contract tests
+          path: artifacts/tests.xml
+          reporter: java-junit
+          fail-on-error: true
+          fail-on-empty: true
+      - name: Retain the JUnit report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: junit-report-${{ github.event.pull_request.head.sha }}
+          path: artifacts/tests.xml
+          retention-days: 30
+          if-no-files-found: error
+      - name: Summarize test results
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "### Contract tests"
+            echo "Passed: ${{ steps.report.outputs.passed }}"
+            echo "Failed: ${{ steps.report.outputs.failed }}"
+            echo "Skipped: ${{ steps.report.outputs.skipped }}"
+            echo "Check: ${{ steps.report.outputs.url }}"
+            echo "Raw JUnit report retained for 30 days as artifact junit-report-${{ github.event.pull_request.head.sha }}."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: actionlint
+        if: ${{ !cancelled() }}
+        run: |
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/$archive"
+          echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$archive" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color

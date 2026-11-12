@@ -1,0 +1,35 @@
+{
+  "format": "livingproof-run-integrity-checks/1.0.0",
+  "checks": [
+    {
+      "id": "completeness",
+      "version": "1.0.0",
+      "schema": "schema/integrity/checks/completeness.schema.json",
+      "examples": ["examples/integrity/completeness"]
+    },
+    {
+      "id": "pins",
+      "version": "1.0.0",
+      "schema": "schema/integrity/checks/pins.schema.json",
+      "examples": ["examples/integrity/pins", "examples/integrity/pins-partial"]
+    },
+    {
+      "id": "same-input-agreement",
+      "version": "1.0.0",
+      "schema": "schema/integrity/checks/same-input-agreement.schema.json",
+      "examples": [
+        "examples/integrity/same-input-agreement/recording-mismatch",
+        "examples/integrity/same-input-agreement/grader-disagreement",
+        "examples/integrity/same-input-agreement/robot-variation",
+        "examples/integrity/same-input-agreement/undeclared"
+      ]
+    },
+    {
+      "id": "ci-publisher",
+      "version": "1.0.0",
+      "schema": "schema/integrity/checks/ci-publisher.schema.json",
+      "examples": ["examples/integrity/ci-publisher"],
+      "recorded_run": "https://github.com/Living-Proof-Labs/livingproof-capability-report/actions/runs/43139248932"
+    }
+  ]
+}

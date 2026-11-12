@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+# Adapted from Living Proof Labs collaboration-guidelines templates/python/Taskfile.yml
+# at v7.8.2, licensed under Apache-2.0.
+# Requires uv, project Python, pyproject.toml, and uv.lock with Ruff/pytest in dev.
+# Run directly in the prepared development/tooling environment, without Docker.
+# For a Compose host wrapper, copy this file as Taskfile.runtime.yml.
+# Pair tool help with generated reference; see docs/tool-usability.md at the
+# same adopted guidelines version. The generated-docs fixture demonstrates Click.
+version: "3"
+
+tasks:
+  setup:
+    desc: Sync locked dependencies into the project environment
+    cmds:
+      - uv sync --locked --no-python-downloads
+  check:
+    desc: Check Python with locked Ruff
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads ruff check .
+      - uv run --locked --no-sync --no-python-downloads ruff format --check .
+  test:
+    desc: Run locked pytest
+    cmds:
+      - uv run --locked --no-sync --no-python-downloads python -c "import os; os.makedirs('artifacts', exist_ok=True)"
+      - uv run --locked --no-sync --no-python-downloads pytest --junitxml=artifacts/tests.xml
+  verify:
+    desc: Run checks and tests
+    cmds:
+      - task: check
+      - task: test

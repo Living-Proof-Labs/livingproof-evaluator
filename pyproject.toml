@@ -1,0 +1,27 @@
+[project]
+name = "livingproof-evaluator"
+version = "0.0.0"
+description = "Evaluator contract schemas and examples. No evaluator implementation."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "jsonschema>=4.23.0",
+  "pytest>=8.3.4",
+  "ruff>=0.8.4",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests", "tools"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["tests"]

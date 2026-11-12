@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/result.schema.json",
+  "title": "Run integrity result payload",
+  "description": "Test-system status for the run and for each planned trial, plus the checks that were reported. success and percentage are the quantitative result. percentage is a share from 0 to 100, and the document has no count of successes out of a count of trials. A failed check marks the run ERROR and INCONCLUSIVE. This schema has no robot verdict: verdict, grade, pass, and fail are rejected, and finding categories are lowercase slugs.",
+  "type": "object",
+  "unevaluatedProperties": false,
+  "required": ["run", "trials", "checks"],
+  "properties": {
+    "run": {"$ref": "#/$defs/run"},
+    "trials": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/trial_status"}
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Each item is validated against its check schema, so a category and classification pair has to match that check. The id also has to be one of the registered checks.",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/completeness.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/pins.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/same-input-agreement.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/ci-publisher.schema.json"
+          }
+        ]
+      }
+    },
+    "verdict": false,
+    "grade": false,
+    "pass": false,
+    "fail": false,
+    "steps": false
+  },
+  "$defs": {
+    "run": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": ["id", "test_system_status", "success", "percentage"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "test_system_status": {
+          "enum": ["COMPLETED", "ERROR"],
+          "description": "COMPLETED means the reported checks found a trustworthy test system. ERROR means a test-system finding is present."
+        },
+        "conclusion": {
+          "const": "INCONCLUSIVE",
+          "description": "Present when the run is untrustworthy. The integrity result uses this mark and does not use a robot verdict."
+        },
+        "success": {
+          "type": "boolean",
+          "description": "True when every reported check succeeded. This is test-system success."
+        },
+        "percentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "The minimum percentage among applicable reported checks. When every reported check is not applicable, the percentage is 100."
+        },
+        "verdict": false,
+        "grade": false,
+        "pass": false,
+        "fail": false
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"success": {"const": false}},
+            "required": ["success"]
+          },
+          "then": {
+            "required": ["conclusion"],
+            "properties": {"test_system_status": {"const": "ERROR"}}
+          }
+        },
+        {
+          "if": {
+            "properties": {"success": {"const": true}},
+            "required": ["success"]
+          },
+          "then": {
+            "properties": {
+              "test_system_status": {"const": "COMPLETED"},
+              "conclusion": false
+            }
+          }
+        }
+      ]
+    },
+    "trial_status": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": ["id", "test_system_status", "success", "percentage"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "test_system_status": {"enum": ["COMPLETED", "ERROR"]},
+        "success": {"type": "boolean"},
+        "percentage": {"type": "number", "minimum": 0, "maximum": 100},
+        "verdict": false,
+        "grade": false,
+        "pass": false,
+        "fail": false,
+        "conclusion": false
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"success": {"const": true}},
+            "required": ["success"]
+          },
+          "then": {
+            "properties": {
+              "test_system_status": {"const": "COMPLETED"},
+              "percentage": {"const": 100}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"success": {"const": false}},
+            "required": ["success"]
+          },
+          "then": {
+            "properties": {
+              "test_system_status": {"const": "ERROR"},
+              "percentage": {"const": 0}
+            }
+          }
+        }
+      ]
+    },
+    "finding": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": ["category", "classification", "summary"],
+      "properties": {
+        "category": {
+          "description": "Check-defined category. Robot verdict words are rejected, so a pass or fail has no field to occupy.",
+          "allOf": [
+            {
+              "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/slug"
+            },
+            {
+              "not": {
+                "pattern": "pass|fail|verdict|grade|success"
+              }
+            }
+          ]
+        },
+        "classification": {
+          "enum": ["test_system", "robot_variation"],
+          "description": "test_system means something besides the robot shaped the run, including a grader that disagrees about identical recordings. robot_variation means the recordings differ and the robot software is declared non-deterministic. It does not fail the run."
+        },
+        "summary": {"type": "string", "minLength": 1},
+        "trial_id": {"type": "string", "minLength": 1},
+        "trial_ids": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "subject": {
+          "enum": ["specs", "runner", "verifier", "world", "configuration"]
+        },
+        "check_run": {"type": "string", "minLength": 1}
+      }
+    },
+    "check": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": ["id", "version", "applicable", "success", "findings"],
+      "properties": {
+        "id": {
+          "description": "Must be a check id in schema/integrity/checks/registry.json. An unknown id is rejected here so the envelope does not depend on a later dispatch step to refuse it.",
+          "enum": ["completeness", "pins", "same-input-agreement", "ci-publisher"]
+        },
+        "version": {
+          "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/semver"
+        },
+        "applicable": {"type": "boolean"},
+        "success": {
+          "type": "boolean",
+          "description": "True when this check found no test-system problem. A robot_variation finding leaves success true."
+        },
+        "percentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "The share of this check that succeeded, from 0 to 100. Omitted when the check is not applicable."
+        },
+        "findings": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/finding"}
+        },
+        "verdict": false,
+        "grade": false,
+        "pass": false,
+        "fail": false
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"applicable": {"const": true}},
+            "required": ["applicable"]
+          },
+          "then": {"required": ["percentage"]}
+        },
+        {
+          "if": {
+            "properties": {"applicable": {"const": false}},
+            "required": ["applicable"]
+          },
+          "then": {
+            "properties": {
+              "success": {"const": true},
+              "percentage": false,
+              "findings": {"maxItems": 0}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "applicable": {"const": true},
+              "success": {"const": true}
+            },
+            "required": ["applicable", "success"]
+          },
+          "then": {
+            "properties": {
+              "percentage": {"const": 100},
+              "findings": {
+                "items": {
+                  "properties": {"classification": {"const": "robot_variation"}}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"success": {"const": false}},
+            "required": ["success"]
+          },
+          "then": {
+            "properties": {
+              "findings": {
+                "minItems": 1,
+                "items": {
+                  "properties": {"classification": {"const": "test_system"}}
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "checks": {
+            "contains": {
+              "type": "object",
+              "required": ["success"],
+              "properties": {"success": {"const": false}}
+            }
+          }
+        },
+        "required": ["checks"]
+      },
+      "then": {
+        "properties": {
+          "run": {
+            "required": ["success"],
+            "properties": {"success": {"const": false}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "run": {
+            "required": ["success"],
+            "properties": {"success": {"const": true}}
+          },
+          "trials": {
+            "items": {
+              "properties": {"success": {"const": true}}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

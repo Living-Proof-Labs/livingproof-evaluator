@@ -1,0 +1,81 @@
+{
+  "format": "livingproof-evaluator-result/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "11a3284bbece11a17a5fde2370bf21ae3450773f4d982b82324b429514ff0641"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "56c9e81920e2f039a06323c58af6a5e8429cedc0afdc0f671d67d27f51376bb3"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-11-12T03:40:01Z",
+    "completed_at": "2026-11-12T03:40:02Z"
+  },
+  "integrity": {
+    "run": {
+      "id": "example-clean",
+      "test_system_status": "COMPLETED",
+      "success": true,
+      "percentage": 100
+    },
+    "trials": [
+      {
+        "id": "trial-01",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-02",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      }
+    ],
+    "checks": [
+      {
+        "id": "completeness",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": true,
+        "percentage": 100,
+        "findings": []
+      },
+      {
+        "id": "pins",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": true,
+        "percentage": 100,
+        "findings": []
+      },
+      {
+        "id": "same-input-agreement",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": true,
+        "percentage": 100,
+        "findings": []
+      }
+    ]
+  }
+}
