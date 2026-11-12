@@ -1,0 +1,73 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-scenario",
+    "version": "1.0.0",
+    "kind": "scenario",
+    "execution": "deterministic",
+    "display_name": "Scenario",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\"><g stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6.5 7L10.5 11L17.5 4\"/><rect x=\"4\" y=\"9\" width=\"16\" height=\"11\" rx=\"4\"/></g><g fill=\"currentColor\"><circle cx=\"8.5\" cy=\"14.5\" r=\"1.5\"/><circle cx=\"15.5\" cy=\"14.5\" r=\"1.5\"/></g></svg>"
+  },
+  "inputs": [
+    {
+      "role": "recording",
+      "uri": "recordings/trial-01.mcap",
+      "sha256": "a6a843b45a462ddb62bf01854077792b2472cd0c883f0207a17c878c90de3fd0"
+    },
+    {
+      "role": "binding",
+      "uri": "binding.json",
+      "sha256": "edf1a4c94172282a52287148d1f0e27bf4aecce27cf7a47e27342be2201099e4"
+    },
+    {
+      "role": "scenario",
+      "uri": "scenario.json",
+      "sha256": "0e5fc30384d9cfe199147b0bfc92bd33465f13c96df747aef461dbe472c16a61"
+    },
+    {
+      "role": "manifest",
+      "uri": "run/manifest.json",
+      "sha256": "f08c8a2f0c578e8d93c7ec9ef358ea191195049e2e975a2ef66f1011b69a0ad8"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-12T03:40:00Z"
+  },
+  "scenario": {
+    "trial_id": "trial-01",
+    "scenario": {
+      "id": "walk-hallway",
+      "steps": [
+        {
+          "id": "reach-the-exit",
+          "text": "the base enters place \"exit\" within 30 seconds",
+          "known": true,
+          "observable": "base",
+          "bound": true
+        },
+        {
+          "id": "stay-near-centerline",
+          "text": "the base lateral offset from \"centerline\" stays within 0.5 meters",
+          "known": true,
+          "observable": "base",
+          "bound": true
+        },
+        {
+          "id": "stay-upright",
+          "text": "the base height stays above 60% of nominal",
+          "known": true,
+          "observable": "base_height",
+          "bound": true
+        }
+      ]
+    },
+    "binding": {
+      "bound_observables": [
+        "base",
+        "base_height",
+        "body_contact"
+      ]
+    }
+  }
+}
