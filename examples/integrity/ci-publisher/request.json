@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "60b37b868386dcc3b9cb3a4499ca55b40a02448ae4a31da6c94b5d54f09385d4"
+      "sha256": "cd33b014b6eb88130346e72fd20bc880cb2ff55ac773cc561dd43897fbd20d74"
     },
     {
       "role": "lock",
@@ -28,7 +28,7 @@
     {
       "role": "evidence",
       "uri": "evidence.json",
-      "sha256": "76cebd91c2ec60c8b153fb3cd9d3e67b3bc6a7e788e3d1fc5c3ec50ecb35208e"
+      "sha256": "0fd7aa228dcca0871f43f2173c9a34a375d94b8770ac995d7c21a0fefd652fa3"
     }
   ],
   "timestamps": {
@@ -38,6 +38,7 @@
     "manifest": {
       "id": "example-ci-publisher",
       "deterministic": true,
+      "environment": "simulation",
       "pins": {
         "specs": {
           "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
@@ -62,7 +63,8 @@
         {
           "id": "trial-02"
         }
-      ]
+      ],
+      "robot_determinism": "deterministic"
     },
     "lock": {
       "pins": {
@@ -116,7 +118,11 @@
         "publisher_http_status": 404,
         "check_runs": [
           {
-            "name": "walk-hallway",
+            "name": "Reporter tests (amd64)",
+            "status": "in_progress"
+          },
+          {
+            "name": "Reporter tests (arm64)",
             "status": "in_progress"
           }
         ]

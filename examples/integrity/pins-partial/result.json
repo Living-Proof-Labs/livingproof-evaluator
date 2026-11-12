@@ -1,0 +1,79 @@
+{
+  "format": "livingproof-evaluator-result/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "39a364f07448b5ad9cef92488925bf36c9042cabc283e9c18fe932c70a3ed921"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "56c9e81920e2f039a06323c58af6a5e8429cedc0afdc0f671d67d27f51376bb3"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-11-12T03:40:01Z",
+    "completed_at": "2026-11-12T03:40:02Z"
+  },
+  "integrity": {
+    "run": {
+      "id": "example-pins-partial",
+      "test_system_status": "ERROR",
+      "conclusion": "INCONCLUSIVE",
+      "success": false,
+      "percentage": 60
+    },
+    "trials": [
+      {
+        "id": "trial-01",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-02",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      }
+    ],
+    "checks": [
+      {
+        "id": "pins",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": false,
+        "percentage": 60,
+        "findings": [
+          {
+            "category": "hash-mismatch",
+            "classification": "test_system",
+            "summary": "The specs pin hash differs between the run manifest and the verification lock.",
+            "subject": "specs"
+          },
+          {
+            "category": "hash-mismatch",
+            "classification": "test_system",
+            "summary": "The world pin hash differs between the run manifest and the verification lock.",
+            "subject": "world"
+          }
+        ]
+      }
+    ]
+  }
+}

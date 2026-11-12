@@ -14,7 +14,7 @@ It does not implement a particular evaluator, hold Gherkin step definitions, or 
 
 ## Status
 
-The shared envelope and the run-integrity contract are published here as schemas, examples, and tests. The observable vocabulary and the observation-binding format are still design. There is no evaluator implementation in this repository. The agreed design is in the [Living Proof Evaluator Skill — Feature Proposal](https://app.notion.com/p/414e1aa44c2981e0b8b2fcb28f47ea40).
+The shared envelope and the run-integrity contract are published here as schemas, examples, and tests. The fixtures are example data, except the publisher check, which records one real GitHub run. The observable vocabulary and the observation-binding format are still design. There is no evaluator implementation in this repository. The agreed design is in the [Living Proof Evaluator Skill — Feature Proposal](https://app.notion.com/p/414e1aa44c2981e0b8b2fcb28f47ea40).
 
 ## License
 

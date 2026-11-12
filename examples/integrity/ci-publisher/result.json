@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "60b37b868386dcc3b9cb3a4499ca55b40a02448ae4a31da6c94b5d54f09385d4"
+      "sha256": "cd33b014b6eb88130346e72fd20bc880cb2ff55ac773cc561dd43897fbd20d74"
     },
     {
       "role": "lock",
@@ -28,7 +28,7 @@
     {
       "role": "evidence",
       "uri": "evidence.json",
-      "sha256": "76cebd91c2ec60c8b153fb3cd9d3e67b3bc6a7e788e3d1fc5c3ec50ecb35208e"
+      "sha256": "0fd7aa228dcca0871f43f2173c9a34a375d94b8770ac995d7c21a0fefd652fa3"
     }
   ],
   "timestamps": {
@@ -68,8 +68,14 @@
           {
             "category": "check-run-left-open",
             "classification": "test_system",
-            "summary": "Check run walk-hallway was left open after the publisher received HTTP 404.",
-            "check_run": "walk-hallway"
+            "summary": "Check run Reporter tests (amd64) was left in progress after the publisher returned HTTP 404.",
+            "check_run": "Reporter tests (amd64)"
+          },
+          {
+            "category": "check-run-left-open",
+            "classification": "test_system",
+            "summary": "Check run Reporter tests (arm64) was left in progress after the publisher returned HTTP 404.",
+            "check_run": "Reporter tests (arm64)"
           }
         ]
       }

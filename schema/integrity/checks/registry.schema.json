@@ -27,6 +27,11 @@
             "type": "array",
             "minItems": 1,
             "items": {"type": "string", "minLength": 1}
+          },
+          "recorded_run": {
+            "type": "string",
+            "minLength": 1,
+            "description": "URL of a real run that triggered this check. Example fixtures stay labeled as example data."
           }
         }
       }

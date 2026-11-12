@@ -46,7 +46,7 @@
         },
         "execution": {
           "enum": ["deterministic", "agentic"],
-          "description": "Whether the evaluator follows a fixed procedure or an agentic one."
+          "description": "Whether the evaluator follows a fixed procedure or an agentic one. capability-verifier records the same idea on an assessor as type agent. This contract uses the word agentic and does not accept agent in this field."
         },
         "display_name": {"type": "string", "minLength": 1},
         "publisher": {"type": "string", "minLength": 1},

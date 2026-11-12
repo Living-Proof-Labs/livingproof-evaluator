@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "9d10e469bfabad139f0b8bb5a31665a414487580b519ab02a62792a1f177efd0"
+      "sha256": "81de20090543dc79e49eee275a13de1ca80e4f3cc73a94d66bf213a11b321507"
     },
     {
       "role": "lock",

@@ -7,7 +7,11 @@
   "additionalProperties": false,
   "required": ["format", "evaluator", "inputs", "timestamps"],
   "properties": {
-    "format": {"const": "livingproof-evaluator-result/1.0.0"},
+    "format": {
+      "type": "string",
+      "pattern": "^livingproof-evaluator-result/1\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "description": "Major 1. A 1.0 consumer accepts any 1.minor document, ignores unknown kinds and unknown fields, and still validates the fields it knows. See docs/run-integrity.md."
+    },
     "evaluator": {
       "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/evaluator"
     },

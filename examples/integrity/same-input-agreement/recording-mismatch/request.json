@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "90112f271b7b1bbf11b95b623800642f1e52183fe9daea52d18adbe030c1c721"
+      "sha256": "baef288a8660c0494e380704a10880697f1cb05139ac63f960a5ab2fdb0ada29"
     },
     {
       "role": "lock",
@@ -33,6 +33,7 @@
     "manifest": {
       "id": "example-recording-mismatch",
       "deterministic": true,
+      "environment": "simulation",
       "pins": {
         "specs": {
           "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
@@ -57,7 +58,8 @@
         {
           "id": "trial-02"
         }
-      ]
+      ],
+      "robot_determinism": "deterministic"
     },
     "lock": {
       "pins": {

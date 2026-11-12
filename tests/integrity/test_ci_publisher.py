@@ -17,7 +17,11 @@ def test_open_check_run_after_http_404_is_a_test_system_finding() -> None:
     finding = result["checks"][0]["findings"][0]
     assert finding["category"] == "check-run-left-open"
     assert finding["classification"] == "test_system"
-    assert finding["check_run"] == "walk-hallway"
+    assert {item["check_run"] for item in result["checks"][0]["findings"]} == {
+        "Reporter tests (amd64)",
+        "Reporter tests (arm64)",
+    }
+    assert all(run["status"] == "in_progress" for run in evidence["check_runs"])
     assert result["checks"][0]["success"] is False
     assert result["checks"][0]["percentage"] == 0
     assert result["run"]["success"] is False

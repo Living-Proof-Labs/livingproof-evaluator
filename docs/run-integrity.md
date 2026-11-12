@@ -34,7 +34,7 @@ Each integrity check is a small rule with its own id, version, schema, recorded 
 | --- | --- | --- |
 | `completeness` | 1.0.0 | Every planned trial has a recording and observations. None are missing, truncated, or empty. The trial ended on its own: termination `completed`. `timeout` and `crash` are test-system findings. |
 | `pins` | 1.0.0 | The manifest pin hashes match the verification lock for specs, runner, verifier, world, and configuration. |
-| `same-input-agreement` | 1.0.0 | Where the run is deterministic, trials with the same input hash have the same recording hash. |
+| `same-input-agreement` | 1.0.0 | Identical recordings with different outcomes are a grader problem. Different recordings follow `robot_determinism`. |
 | `ci-publisher` | 1.0.0 | A check run left open after the publisher received HTTP 404 is a test-system finding. |
 
 The first three are the checks named on issue 6. `ci-publisher` is the check named in the owner's note on that issue: a GitHub or CI publisher glitch that leaves a check run open after HTTP 404 has to come back as a test-system result. Timing, broader CI job status, and infrastructure signatures in logs remain later checks, added the same way.
@@ -43,21 +43,32 @@ The first three are the checks named on issue 6. `ci-publisher` is the check nam
 
 ### Same input
 
-When `manifest.deterministic` is true:
+The manifest carries `robot_determinism`, either `deterministic` or `non-deterministic`. On a simulation, and `environment` defaults to simulation when it is omitted, a missing declaration is treated as deterministic so the mismatch is investigated.
 
-- Recordings that differ for the same input hash are a `recording-mismatch` finding classified `test_system`. The check fails, and the run is `ERROR` and `INCONCLUSIVE`. The run is untrustworthy.
-- Outcomes that differ while the recording hashes match are a `robot-variation` finding classified `robot_variation`. The check stays successful, its percentage stays 100, and the run stays `COMPLETED`. That difference is robot variation, a real result.
+- The same input and the same recording with different outcomes is `outcome-disagreement`, classified `test_system`. The robot did the same thing, so the difference comes from the grader. The check fails and the run is `ERROR` and `INCONCLUSIVE`.
+- Different recordings for the same input, when the robot is declared deterministic or the declaration is omitted on a simulation, are `recording-mismatch`, classified `test_system`. The run is inconclusive.
+- Different recordings for the same input, when the robot is declared `non-deterministic`, are `robot-variation`. The check stays successful, its percentage stays 100, and the run stays `COMPLETED`. The finding is how the result reports the variation. It does not lower the success rate.
 
-When `manifest.deterministic` is false, the check is not applicable, it has no percentage, and differing recordings produce no finding.
+`success` on a run, trial, or check is a boolean. It is the test-system success flag. The word `success` is rejected as a finding category, along with `failure`, `robot-fail`, and the other verdict words, so it cannot be stored as a verdict. A document may still contain `"success": true`.
+
+### Validating a result
+
+Validating an integrity result is two steps, and both are part of the contract. The envelope schema checks the shared fields, rejects a check id that is not in `schema/integrity/checks/registry.json`, and rejects verdict-like categories. Then each check object is validated against that registry entry's schema, which is what binds the category to `test_system` or `robot_variation`.
+
+`tools/validate_contract.py` does both steps. `validate_document` returns the errors. The command is `uv run python tools/validate_contract.py <result.json>`.
+
+A consumer of major version 1 accepts any format `livingproof-evaluator-result/1.<minor>` or the matching request format. It ignores unknown fields and an unknown `kind`. Health and an observations-only evaluator are added as a later 1.minor: a new kind, a new payload, and a format such as `1.1.0`. A 1.0 reader skips that kind instead of failing the document. The strict 1.0 schema still rejects an unknown kind, which is how a 1.0 producer stays closed. The consumer rule is what keeps the minor bump compatible.
+
+`execution` uses `agentic`. capability-verifier names the same assessor type `agent`. This contract does not accept `agent` in `execution`.
 
 ### Adding a check
 
 1. Add `schema/integrity/checks/<id>.schema.json` with the rule, the version, the finding categories, and any evidence object.
-2. Append one entry to `schema/integrity/checks/registry.json`.
-3. Add the recorded run under `examples/integrity/<id>/` as `request.json` and `result.json`.
+2. Append one entry to `schema/integrity/checks/registry.json`, and add the id to the check id enum in `schema/integrity/result.schema.json`.
+3. Add the example under `examples/integrity/<id>/` as `request.json` and `result.json`.
 4. Add `tests/integrity/test_<id>.py` with the assertions for that rule.
 
-The new schema is the only check schema that changes. The other check schemas, fixtures, and tests stay as they are. Evidence for the new check goes under `evidence.<id>` in the integrity request. The shared request schema already allows that object.
+The other check schemas, fixtures, and tests stay as they are. Evidence for the new check goes under `evidence.<id>`. A check that needs a new finding field, or a pin subject outside the five names, edits the shared finding definition in `schema/integrity/result.schema.json`. The category text must not contain the verdict words `pass`, `fail`, `verdict`, `grade`, or `success`.
 
 ## Where the implementation should live
 
@@ -86,20 +97,24 @@ Outages and infrastructure failures are the cases this contract is for. A missin
 
 ## Examples
 
-Scenario fixtures:
+Every fixture under `examples/` except the publisher case is example data. The hashes, run ids, trial outcomes, and URIs are synthetic. They are not recordings from a published G1, Go1, or T1 run.
+
+Scenario fixtures, all example data:
 
 - `examples/scenario/graded/` has step verdicts `PASS`, `FAIL`, and `INCONCLUSIVE`.
 - `examples/scenario/not-evaluated/` has a known bound step, an unknown step, and an unbound observable.
 
-Integrity fixtures:
+Integrity fixtures, example data unless noted:
 
 - `examples/integrity/clean/` reports `completeness`, `pins`, and `same-input-agreement` all successful.
-- `examples/integrity/completeness/` is the run that triggers every completeness category.
-- `examples/integrity/pins/` is the run whose five pin hashes differ from the lock.
-- `examples/integrity/same-input-agreement/recording-mismatch/` is the triggering run for differing recordings.
-- `examples/integrity/same-input-agreement/robot-variation/` is the run whose outcomes differ and whose recordings match.
-- `examples/integrity/same-input-agreement/not-deterministic/` is a run that is allowed to differ.
-- `examples/integrity/ci-publisher/` is the run whose check was left open after HTTP 404.
+- `examples/integrity/completeness/` triggers every completeness category.
+- `examples/integrity/pins/` has five pin hashes that differ.
+- `examples/integrity/pins-partial/` is example data whose specs and world hashes differ and whose other three pins match, so the percentage is 60.
+- `examples/integrity/same-input-agreement/recording-mismatch/` is example data for different recordings with the robot declared deterministic.
+- `examples/integrity/same-input-agreement/grader-disagreement/` is example data for identical recordings and different outcomes.
+- `examples/integrity/same-input-agreement/robot-variation/` is example data for different recordings with `robot_determinism` set to `non-deterministic`. The percentage stays 100.
+- `examples/integrity/same-input-agreement/undeclared/` is example data for a simulation that omits `robot_determinism`.
+- `examples/integrity/ci-publisher/` is the contract shape of a real run. On 2026-11-12 at 02:08:22Z (13:08:22 AEDT), job `130921936148` of [capability-report run 43139248932](https://github.com/Living-Proof-Labs/livingproof-capability-report/actions/runs/43139248932) logged `HttpError: Not Found` while updating a check-run conclusion. The log names the report `Reporter tests (amd64)`. The check-run API, read on 2026-11-12, still shows check run `130922092615` (`Reporter tests (amd64)`, started 02:08:22Z) and check run `130922085540` (`Reporter tests (arm64)`, started 02:08:20Z) as `in_progress` with no conclusion. The job log does not print those numeric ids. The ids and the `in_progress` status come from the API. The HTTP error line comes from the job log.
 
 Recording and manifest hashes on the scenario examples are the sha256 of the URI text. This repository does not ship the MCAP or the run manifest bytes. Integrity examples hash the embedded manifest, lock, trials, and evidence, and the tests check those hashes.
 

@@ -16,7 +16,23 @@
     "checks": {
       "type": "array",
       "minItems": 1,
-      "items": {"$ref": "#/$defs/check"}
+      "description": "Each item is validated against its check schema, so a category and classification pair has to match that check. The id also has to be one of the registered checks.",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/completeness.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/pins.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/same-input-agreement.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/ci-publisher.schema.json"
+          }
+        ]
+      }
     },
     "verdict": false,
     "grade": false,
@@ -134,14 +150,14 @@
             },
             {
               "not": {
-                "enum": ["pass", "fail", "passed", "failed", "verdict", "grade"]
+                "pattern": "pass|fail|verdict|grade|success"
               }
             }
           ]
         },
         "classification": {
           "enum": ["test_system", "robot_variation"],
-          "description": "test_system means something besides the robot shaped the run. robot_variation means outcomes differed while recordings matched, which is a real robot result."
+          "description": "test_system means something besides the robot shaped the run, including a grader that disagrees about identical recordings. robot_variation means the recordings differ and the robot software is declared non-deterministic. It does not fail the run."
         },
         "summary": {"type": "string", "minLength": 1},
         "trial_id": {"type": "string", "minLength": 1},
@@ -163,7 +179,8 @@
       "required": ["id", "version", "applicable", "success", "findings"],
       "properties": {
         "id": {
-          "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/slug"
+          "description": "Must be a check id in schema/integrity/checks/registry.json. An unknown id is rejected here so the envelope does not depend on a later dispatch step to refuse it.",
+          "enum": ["completeness", "pins", "same-input-agreement", "ci-publisher"]
         },
         "version": {
           "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/semver"
@@ -219,6 +236,7 @@
           },
           "then": {
             "properties": {
+              "percentage": {"const": 100},
               "findings": {
                 "items": {
                   "properties": {"classification": {"const": "robot_variation"}}
@@ -245,5 +263,42 @@
         }
       ]
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "checks": {
+            "contains": {
+              "type": "object",
+              "required": ["success"],
+              "properties": {"success": {"const": false}}
+            }
+          }
+        },
+        "required": ["checks"]
+      },
+      "then": {
+        "properties": {
+          "run": {
+            "required": ["success"],
+            "properties": {"success": {"const": false}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "run": {
+            "required": ["success"],
+            "properties": {"success": {"const": true}}
+          },
+          "trials": {
+            "items": {
+              "properties": {"success": {"const": true}}
+            }
+          }
+        }
+      }
+    }
+  ]
 }

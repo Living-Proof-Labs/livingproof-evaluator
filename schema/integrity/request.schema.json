@@ -15,8 +15,26 @@
     },
     "evidence": {
       "type": "object",
-      "description": "Optional evidence for individual checks. Each property name is a check id.",
-      "additionalProperties": {"type": "object"}
+      "description": "Optional evidence for individual checks. Each property name is a check id. Evidence cannot carry a robot verdict.",
+      "properties": {
+        "verdict": false,
+        "grade": false,
+        "pass": false,
+        "fail": false,
+        "robot_verdict": false,
+        "robot_result": false
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "verdict": false,
+          "grade": false,
+          "pass": false,
+          "fail": false,
+          "robot_verdict": false,
+          "robot_result": false
+        }
+      }
     },
     "verdict": false,
     "grade": false,
@@ -55,7 +73,15 @@
         "id": {"type": "string", "minLength": 1},
         "deterministic": {
           "type": "boolean",
-          "description": "True when the run is meant to repeat the same inputs and produce the same recordings."
+          "description": "The run plan repeated the same inputs. The agreement check reads robot_determinism, not this flag."
+        },
+        "robot_determinism": {
+          "enum": ["deterministic", "non-deterministic"],
+          "description": "Declaration of the robot software. Omitted on a simulation means deterministic, so a recording mismatch is investigated as a test-system finding."
+        },
+        "environment": {
+          "enum": ["simulation", "hardware"],
+          "description": "Omitted means simulation, which is the default for the published MuJoCo runs."
         },
         "pins": {"$ref": "#/$defs/pins"},
         "planned_trials": {

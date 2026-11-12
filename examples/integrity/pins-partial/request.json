@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "1455fe2ef779d02c6f628744656cc040eb9f99367a588ff9cdb362cf34c340cf"
+      "sha256": "39a364f07448b5ad9cef92488925bf36c9042cabc283e9c18fe932c70a3ed921"
     },
     {
       "role": "lock",
@@ -23,7 +23,7 @@
     {
       "role": "trials",
       "uri": "trials.json",
-      "sha256": "cea3a7ff8666750677000c926f9f86129f808af16feffb76c416c25051dbebe3"
+      "sha256": "56c9e81920e2f039a06323c58af6a5e8429cedc0afdc0f671d67d27f51376bb3"
     }
   ],
   "timestamps": {
@@ -31,11 +31,12 @@
   },
   "integrity": {
     "manifest": {
-      "id": "example-not-deterministic",
-      "deterministic": false,
+      "id": "example-pins-partial",
+      "deterministic": true,
+      "environment": "simulation",
       "pins": {
         "specs": {
-          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+          "sha256": "47b640411d8410ef378f838407bbc19b7d044b5d78697155be3bf3c27e5d96e5"
         },
         "runner": {
           "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
@@ -44,7 +45,7 @@
           "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
         },
         "world": {
-          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+          "sha256": "8de2e1997c12fefc3cba91200cdfe1e8a46224dcacc279724c9311acd27c9473"
         },
         "configuration": {
           "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
@@ -57,7 +58,8 @@
         {
           "id": "trial-02"
         }
-      ]
+      ],
+      "robot_determinism": "deterministic"
     },
     "lock": {
       "pins": {
@@ -84,7 +86,7 @@
         "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
         "recording": {
           "state": "present",
-          "sha256": "7cc392b4ee6d1c4b8f7a63494a33e3005f51a37bdd012f1068b3c306d659732c"
+          "sha256": "94cbcdd82cbdf59b956d1e66bc3fff90abd391658ba0f6aad2b1bff39e96aa89"
         },
         "observations": {
           "state": "present"
@@ -97,13 +99,13 @@
         "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
         "recording": {
           "state": "present",
-          "sha256": "08b23bf61c780ce7188c1a700f4e22fb76274b119c8d0545e19fb34cf08b10f7"
+          "sha256": "94cbcdd82cbdf59b956d1e66bc3fff90abd391658ba0f6aad2b1bff39e96aa89"
         },
         "observations": {
           "state": "present"
         },
         "termination": "completed",
-        "outcome": "stopped_short"
+        "outcome": "crossed_exit"
       }
     ]
   }

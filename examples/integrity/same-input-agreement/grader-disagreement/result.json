@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "1455fe2ef779d02c6f628744656cc040eb9f99367a588ff9cdb362cf34c340cf"
+      "sha256": "d3be71dd351b1f12e6b967e2ddbeab156f93c3c014bf42f6e3cc29c1f369f200"
     },
     {
       "role": "lock",
@@ -23,7 +23,7 @@
     {
       "role": "trials",
       "uri": "trials.json",
-      "sha256": "cea3a7ff8666750677000c926f9f86129f808af16feffb76c416c25051dbebe3"
+      "sha256": "4fabf3109d15352418ebcb20f5592cabc78264032da0d55c2f9340d737409dbe"
     }
   ],
   "timestamps": {
@@ -32,10 +32,11 @@
   },
   "integrity": {
     "run": {
-      "id": "example-not-deterministic",
-      "test_system_status": "COMPLETED",
-      "success": true,
-      "percentage": 100
+      "id": "example-grader-disagreement",
+      "test_system_status": "ERROR",
+      "conclusion": "INCONCLUSIVE",
+      "success": false,
+      "percentage": 0
     },
     "trials": [
       {
@@ -55,9 +56,20 @@
       {
         "id": "same-input-agreement",
         "version": "1.0.0",
-        "applicable": false,
-        "success": true,
-        "findings": []
+        "applicable": true,
+        "success": false,
+        "percentage": 0,
+        "findings": [
+          {
+            "category": "outcome-disagreement",
+            "classification": "test_system",
+            "summary": "Trials trial-01 and trial-02 used the same input and the same recording with different outcomes. The grader disagreed, so this is a test-system finding.",
+            "trial_ids": [
+              "trial-01",
+              "trial-02"
+            ]
+          }
+        ]
       }
     ]
   }

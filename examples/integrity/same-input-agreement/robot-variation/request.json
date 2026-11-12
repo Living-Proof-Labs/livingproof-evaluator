@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "68375e93a018b9edbe9d60a8ec03cac436781466d97d24994e85c48bcff93267"
+      "sha256": "d3aa775e6be42702a8a2eed1357804375cd41b45f53d5a043e9097ce5bfa5219"
     },
     {
       "role": "lock",
@@ -23,7 +23,7 @@
     {
       "role": "trials",
       "uri": "trials.json",
-      "sha256": "4fabf3109d15352418ebcb20f5592cabc78264032da0d55c2f9340d737409dbe"
+      "sha256": "816609ad8ff19285eb6f116cfd9455a373681a75ad8994c837964b889cde602b"
     }
   ],
   "timestamps": {
@@ -33,6 +33,7 @@
     "manifest": {
       "id": "example-robot-variation",
       "deterministic": true,
+      "environment": "simulation",
       "pins": {
         "specs": {
           "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
@@ -57,7 +58,8 @@
         {
           "id": "trial-02"
         }
-      ]
+      ],
+      "robot_determinism": "non-deterministic"
     },
     "lock": {
       "pins": {
@@ -84,7 +86,7 @@
         "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
         "recording": {
           "state": "present",
-          "sha256": "94cbcdd82cbdf59b956d1e66bc3fff90abd391658ba0f6aad2b1bff39e96aa89"
+          "sha256": "7cc392b4ee6d1c4b8f7a63494a33e3005f51a37bdd012f1068b3c306d659732c"
         },
         "observations": {
           "state": "present"
@@ -97,13 +99,13 @@
         "input_sha256": "b1ce36bfe91321cb90b4282fab7312ef72c8c28ef7dfc3935c2d1ce4d71d3b20",
         "recording": {
           "state": "present",
-          "sha256": "94cbcdd82cbdf59b956d1e66bc3fff90abd391658ba0f6aad2b1bff39e96aa89"
+          "sha256": "08b23bf61c780ce7188c1a700f4e22fb76274b119c8d0545e19fb34cf08b10f7"
         },
         "observations": {
           "state": "present"
         },
         "termination": "completed",
-        "outcome": "stopped_short"
+        "outcome": "crossed_exit"
       }
     ]
   }

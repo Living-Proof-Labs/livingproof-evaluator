@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/same-input-agreement.schema.json",
   "title": "same-input-agreement 1.0.0",
-  "description": "When the run is deterministic, trials that share an input hash have the same recording hash. A recording-mismatch finding is a test-system finding and the run is untrustworthy. When the recording hashes match and the outcome strings differ, the finding is robot_variation, the check stays successful, and the percentage stays 100. When the run is not deterministic the check is not applicable. percentage is 100 times the number of agreeing comparable groups divided by the number of comparable groups, and 100 when there is no comparable group. A comparable group has at least two trials with the same input hash and a recording hash.",
+  "description": "Trials that share an input hash are compared. Identical recordings with different outcomes are outcome-disagreement, a test-system finding from the grader. Different recordings are recording-mismatch, a test-system finding, when robot_determinism is deterministic or omitted on a simulation. Different recordings are robot-variation when robot_determinism is non-deterministic: the check stays successful, percentage stays 100, and the finding reports the variation.",
   "allOf": [
     {
       "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/result.schema.json#/$defs/check"
@@ -16,7 +16,9 @@
       "items": {
         "required": ["trial_ids"],
         "properties": {
-          "category": {"enum": ["recording-mismatch", "robot-variation"]},
+          "category": {
+            "enum": ["recording-mismatch", "outcome-disagreement", "robot-variation"]
+          },
           "trial_id": false,
           "subject": false,
           "check_run": false
@@ -24,7 +26,9 @@
         "allOf": [
           {
             "if": {
-              "properties": {"category": {"const": "recording-mismatch"}},
+              "properties": {
+                "category": {"enum": ["recording-mismatch", "outcome-disagreement"]}
+              },
               "required": ["category"]
             },
             "then": {

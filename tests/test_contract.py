@@ -23,6 +23,7 @@ from support import (
     load_json,
     request_schema,
     result_schema,
+    schema_errors,
     schema_registry,
     validator_for,
     walk_keys,
@@ -213,6 +214,99 @@ def test_clean_run_reports_successful_checks() -> None:
     assert result["integrity"]["run"]["percentage"] == 100
 
 
+def test_envelope_rejects_unregistered_ids_and_verdict_categories() -> None:
+    schema = result_schema()
+    document = load_json(EXAMPLES / "integrity" / "clean" / "result.json")
+    unknown = json.loads(json.dumps(document))
+    unknown["integrity"]["checks"][0]["id"] = "timing"
+    assert_invalid(schema, unknown)
+    for category in ("robot-fail", "failure", "success"):
+        bad = json.loads(json.dumps(document))
+        bad["integrity"]["checks"][0]["success"] = False
+        bad["integrity"]["checks"][0]["percentage"] = 0
+        bad["integrity"]["checks"][0]["findings"] = [
+            {
+                "category": category,
+                "classification": "test_system",
+                "summary": "A verdict word used as a category.",
+                "trial_id": "trial-01",
+            }
+        ]
+        bad["integrity"]["run"] = {
+            "id": bad["integrity"]["run"]["id"],
+            "test_system_status": "ERROR",
+            "conclusion": "INCONCLUSIVE",
+            "success": False,
+            "percentage": 0,
+        }
+        assert_invalid(schema, bad)
+
+
+def test_run_status_follows_check_success() -> None:
+    schema = result_schema()
+    clean = load_json(EXAMPLES / "integrity" / "clean" / "result.json")
+    failed = json.loads(json.dumps(clean))
+    failed["integrity"]["checks"][0]["success"] = False
+    failed["integrity"]["checks"][0]["percentage"] = 0
+    failed["integrity"]["checks"][0]["findings"] = [
+        {
+            "category": "missing-recording",
+            "classification": "test_system",
+            "summary": "The recording is missing.",
+            "trial_id": "trial-01",
+        }
+    ]
+    assert_invalid(schema, failed)
+    variation = load_json(
+        EXAMPLES / "integrity" / "same-input-agreement" / "robot-variation" / "result.json"
+    )
+    marked_failed = json.loads(json.dumps(variation))
+    marked_failed["integrity"]["run"] = {
+        "id": variation["integrity"]["run"]["id"],
+        "test_system_status": "ERROR",
+        "conclusion": "INCONCLUSIVE",
+        "success": False,
+        "percentage": 0,
+    }
+    assert_invalid(schema, marked_failed)
+    low_percentage = json.loads(json.dumps(variation))
+    low_percentage["integrity"]["checks"][0]["percentage"] = 40
+    assert_invalid(schema, low_percentage)
+
+
+def test_evidence_cannot_hold_a_verdict() -> None:
+    schema = request_schema()
+    document = load_json(EXAMPLES / "integrity" / "ci-publisher" / "request.json")
+    bad = json.loads(json.dumps(document))
+    bad["integrity"]["evidence"]["verdict"] = {"PASS": True}
+    assert_invalid(schema, bad)
+    nested = json.loads(json.dumps(document))
+    nested["integrity"]["evidence"]["ci-publisher"]["verdict"] = "PASS"
+    assert_invalid(schema, nested)
+
+
+def test_a_1_1_document_with_an_unknown_kind_or_field_is_accepted_by_a_1_0_consumer() -> None:
+    from validate_contract import consumer_accepts, validate_document
+
+    clean = load_json(EXAMPLES / "integrity" / "clean" / "result.json")
+    with_field = json.loads(json.dumps(clean))
+    with_field["format"] = "livingproof-evaluator-result/1.1.0"
+    with_field["future_field"] = {"note": "ignored by a 1.0 consumer"}
+    assert consumer_accepts(with_field) is True
+    assert schema_errors(result_schema(), with_field)
+    health = {
+        "format": "livingproof-evaluator-result/1.1.0",
+        "evaluator": dict(clean["evaluator"], kind="health"),
+        "inputs": clean["inputs"],
+        "timestamps": clean["timestamps"],
+        "health": {"score": 1},
+        "future_field": True,
+    }
+    assert consumer_accepts(health) is True
+    assert schema_errors(result_schema(), health)
+    assert validate_document(clean) == []
+
+
 def test_design_note_opens_with_the_growth_principle() -> None:
     text = (ROOT / "docs" / "run-integrity.md").read_text()
     opening, _rest = text.split("##", 1)
@@ -220,4 +314,4 @@ def test_design_note_opens_with_the_growth_principle() -> None:
     assert "the run that would have caught it." in opening
     assert "livingproof-evaluator-run-integrity" in text
     assert "HTTP 404" in text
-    assert "robot variation" in text
+    assert "robot-variation" in text

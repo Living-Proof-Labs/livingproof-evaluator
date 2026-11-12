@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "68375e93a018b9edbe9d60a8ec03cac436781466d97d24994e85c48bcff93267"
+      "sha256": "d3aa775e6be42702a8a2eed1357804375cd41b45f53d5a043e9097ce5bfa5219"
     },
     {
       "role": "lock",
@@ -23,7 +23,7 @@
     {
       "role": "trials",
       "uri": "trials.json",
-      "sha256": "4fabf3109d15352418ebcb20f5592cabc78264032da0d55c2f9340d737409dbe"
+      "sha256": "816609ad8ff19285eb6f116cfd9455a373681a75ad8994c837964b889cde602b"
     }
   ],
   "timestamps": {
@@ -62,7 +62,7 @@
           {
             "category": "robot-variation",
             "classification": "robot_variation",
-            "summary": "Trials trial-01 and trial-02 used the same input and produced the same recording with different outcomes. This is robot variation.",
+            "summary": "Trials trial-01 and trial-02 used the same input and produced different recordings. The robot is declared non-deterministic, so this is robot variation and the run stays successful.",
             "trial_ids": [
               "trial-01",
               "trial-02"

@@ -13,7 +13,7 @@
     {
       "role": "manifest",
       "uri": "manifest.json",
-      "sha256": "b8e6bf76d1d3f6ac83fe3293ab003bcd9e4fe24d0d2cd516e2fa3c60899378dd"
+      "sha256": "11a3284bbece11a17a5fde2370bf21ae3450773f4d982b82324b429514ff0641"
     },
     {
       "role": "lock",
@@ -33,6 +33,7 @@
     "manifest": {
       "id": "example-clean",
       "deterministic": true,
+      "environment": "simulation",
       "pins": {
         "specs": {
           "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
@@ -57,7 +58,8 @@
         {
           "id": "trial-02"
         }
-      ]
+      ],
+      "robot_determinism": "deterministic"
     },
     "lock": {
       "pins": {
