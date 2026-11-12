@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/evaluator-result.schema.json",
-  "title": "livingproof-evaluator-result/1.0.0",
-  "description": "Shared result envelope. A scenario result carries step verdicts. An integrity result carries test-system status, success, percentage, and findings. An integrity result cannot include the scenario payload.",
+  "title": "livingproof-evaluator-result/1.1.0",
+  "description": "Shared result envelope. A scenario result carries step verdicts. An integrity result carries test-system status, success, percentage, and findings. An integrity result cannot include the scenario payload. Format 1.1.0 may add an optional descriptor. A 1.0 format must not include one. Documents that already validated as 1.0.0 still validate.",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "evaluator", "inputs", "timestamps"],
@@ -10,7 +10,7 @@
     "format": {
       "type": "string",
       "pattern": "^livingproof-evaluator-result/1\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
-      "description": "Major 1. A 1.0 consumer accepts any 1.minor document, ignores unknown kinds and unknown fields, and still validates the fields it knows. See docs/run-integrity.md."
+      "description": "Major 1. Format 1.0.0 is the merged envelope. Format 1.1.0 may include descriptor. A 1.0 consumer accepts any 1.minor document, drops unknown fields (including descriptor), ignores unknown kinds, and still validates the fields it knows. See docs/run-integrity.md and docs/evaluator-descriptor.md."
     },
     "evaluator": {
       "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/evaluator"
@@ -31,6 +31,10 @@
           "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/timestamp"
         }
       }
+    },
+    "descriptor": {
+      "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/descriptor.schema.json",
+      "description": "Optional on format 1.1.0 and later 1.minor results. Forbidden on format 1.0. Display copy only. descriptor.kind does not select the payload."
     },
     "scenario": {
       "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/scenario/result.schema.json"
@@ -70,6 +74,19 @@
       "then": {
         "required": ["scenario"],
         "properties": {"integrity": false}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "pattern": "^livingproof-evaluator-result/1\\.0\\.(0|[1-9][0-9]*)$"
+          }
+        },
+        "required": ["format"]
+      },
+      "then": {
+        "properties": {"descriptor": false}
       }
     }
   ]

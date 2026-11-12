@@ -57,7 +57,7 @@ Validating an integrity result is two steps, and both are part of the contract. 
 
 `tools/validate_contract.py` does both steps. `validate_document` returns the errors. The command is `uv run python tools/validate_contract.py <result.json>`.
 
-A consumer of major version 1 accepts any format `livingproof-evaluator-result/1.<minor>` or the matching request format. It ignores unknown fields and an unknown `kind`. Health and an observations-only evaluator are added as a later 1.minor: a new kind, a new payload, and a format such as `1.1.0`. A 1.0 reader skips that kind instead of failing the document. The strict 1.0 schema still rejects an unknown kind, which is how a 1.0 producer stays closed. The consumer rule is what keeps the minor bump compatible.
+A consumer of major version 1 accepts any format `livingproof-evaluator-result/1.<minor>` or the matching request format. It ignores unknown fields and an unknown `kind`. Result `1.1.0` adds an optional `descriptor` on the result. The object, the SVG subset, and the way it sits beside `display_name` and `kind` are in [docs/evaluator-descriptor.md](evaluator-descriptor.md). A 1.0 reader drops that object. Health and an observations-only evaluator remain a later minor: a new kind, a new payload, and a format such as `1.2.0`. A 1.0 reader skips that kind instead of failing the document. The strict schema still rejects an unknown kind, which is how a producer stays closed. The consumer rule is what keeps the minor bump compatible.
 
 `execution` uses `agentic`. capability-verifier names the same assessor type `agent`. This contract does not accept `agent` in `execution`.
 
@@ -115,6 +115,8 @@ Integrity fixtures, example data unless noted:
 - `examples/integrity/same-input-agreement/robot-variation/` is example data for different recordings with `robot_determinism` set to `non-deterministic`. The percentage stays 100.
 - `examples/integrity/same-input-agreement/undeclared/` is example data for a simulation that omits `robot_determinism`.
 - `examples/integrity/ci-publisher/` is the contract shape of a real run. On 2026-11-12 at 02:08:22Z (13:08:22 AEDT), job `130921936148` of [capability-report run 43139248932](https://github.com/Living-Proof-Labs/livingproof-capability-report/actions/runs/43139248932) logged `HttpError: Not Found` while updating a check-run conclusion. The log names the report `Reporter tests (amd64)`. The check-run API, read on 2026-11-12, still shows check run `130922092615` (`Reporter tests (amd64)`, started 02:08:22Z) and check run `130922085540` (`Reporter tests (arm64)`, started 02:08:20Z) as `in_progress` with no conclusion. The job log does not print those numeric ids. The ids and the `in_progress` status come from the API. The HTTP error line comes from the job log.
+
+Descriptor fixtures, all example data, are listed in [docs/evaluator-descriptor.md](evaluator-descriptor.md). They are 1.1 results. Their payloads are copies of the graded scenario fixture, the partial pins fixture, and the clean integrity fixture.
 
 Recording and manifest hashes on the scenario examples are the sha256 of the URI text. This repository does not ship the MCAP or the run manifest bytes. Integrity examples hash the embedded manifest, lock, trials, and evidence, and the tests check those hashes.
 
