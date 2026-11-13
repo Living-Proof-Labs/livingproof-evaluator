@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/descriptor.schema.json",
   "title": "Evaluator descriptor",
   "description": "Optional display object on livingproof-evaluator-result/1.1.0. It describes the evaluator for a generic report. It does not select the scenario or integrity payload. See docs/evaluator-descriptor.md.",
   "type": "object",

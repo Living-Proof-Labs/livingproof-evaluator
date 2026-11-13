@@ -11,7 +11,6 @@ from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_ROOT = ROOT / "schema"
-SCHEMA_URI_PREFIX = "https://github.com/Living-Proof-Labs/livingproof-evaluator/"
 EXAMPLES = ROOT / "examples"
 REGISTRY_PATH = SCHEMA_ROOT / "integrity" / "checks" / "registry.json"
 
@@ -38,17 +37,10 @@ def load_json(path: Path) -> object:
 
 
 def schema_registry() -> Registry:
-    """Register each schema at the retrieval URI its $ref uses.
-
-    Schemas do not set $id. Those URLs 404 on github.com, and this repository
-    does not host the files anywhere else. The registry key is only the offline
-    name the $ref strings already use.
-    """
     resources = []
     for path in SCHEMA_ROOT.rglob("*.schema.json"):
         contents = json.loads(path.read_text())
-        uri = SCHEMA_URI_PREFIX + path.relative_to(ROOT).as_posix()
-        resources.append((uri, Resource.from_contents(contents)))
+        resources.append((contents["$id"], Resource.from_contents(contents)))
     return Registry().with_resources(resources)
 
 

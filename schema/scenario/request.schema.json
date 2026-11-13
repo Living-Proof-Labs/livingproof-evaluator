@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/scenario/request.schema.json",
   "title": "Scenario evaluator request payload",
   "description": "One trial's scenario steps and the merged binding. The recording and the run manifest are named in the envelope inputs. known false is an unknown step. known true with bound false is an unbound observable.",
   "type": "object",

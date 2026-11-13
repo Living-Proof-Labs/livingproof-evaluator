@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/pins.schema.json",
   "title": "pins 1.0.0",
   "description": "The run manifest pin hashes match the verification lock for specs, runner, verifier, world, and configuration. percentage is 100 times the number of matching subjects divided by 5. Each difference is a hash-mismatch finding on that subject and is a test-system finding.",
   "allOf": [

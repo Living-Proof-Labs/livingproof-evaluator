@@ -1,5 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/registry.schema.json",
   "title": "livingproof-run-integrity-checks/1.0.0",
   "description": "Index of integrity checks. Adding a check appends one entry. Existing entries stay as they are.",
   "type": "object",
