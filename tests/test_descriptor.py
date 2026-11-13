@@ -160,6 +160,44 @@ def test_grade_is_independent_of_integrity_percentage() -> None:
     assert document["integrity"]["run"]["percentage"] == 60
 
 
+def test_committed_examples_stay_valid() -> None:
+    for example in example_dirs():
+        assert validate_document(load_json(example / "request.json")) == []
+        assert validate_document(load_json(example / "result.json")) == []
+
+
+def test_omitted_title_applies_plain_text_to_display_name_and_publisher() -> None:
+    markup = "<b>Scenario</b>"
+    omitted = _scenario_with_icon()
+    omitted["descriptor"].pop("title")
+    assert validate_document(omitted) == []
+
+    named = _copy(omitted)
+    named["evaluator"]["display_name"] = markup
+    assert any("display_name" in error for error in validate_document(named))
+    named["descriptor"]["title"] = "Scenario"
+    named["evaluator"]["display_name"] = "Scenario"
+    assert validate_document(named) == []
+
+    published = _copy(omitted)
+    published["evaluator"]["publisher"] = markup
+    errors = validate_document(published)
+    assert any("publisher" in error for error in errors)
+    assert all("display_name" not in error for error in errors)
+
+    present = _scenario_with_icon()
+    assert present["descriptor"]["title"] == present["evaluator"]["display_name"]
+    assert validate_document(present) == []
+    present["evaluator"]["publisher"] = markup
+    assert validate_document(present) == []
+
+    legacy = load_json(EXAMPLES / "scenario" / "graded" / "result.json")
+    assert legacy["format"] == "livingproof-evaluator-result/1.0.0"
+    legacy["evaluator"]["display_name"] = markup
+    legacy["evaluator"]["publisher"] = markup
+    assert validate_document(legacy) == []
+
+
 def test_title_matches_the_display_name_and_is_not_suffixed_by_the_consumer() -> None:
     document = _scenario_with_icon()
     document["descriptor"]["title"] = "Scenario evaluator"
