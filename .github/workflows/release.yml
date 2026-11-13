@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+name: Release
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/verify.yml
+  release:
+    # semantic-release.yml at v7.10.9 analyzes conventional commits, then tags
+    # v${version} and publishes a GitHub release. It does not write a version
+    # into pyproject.toml. With no tag on main, semantic-release 25.0.9
+    # publishes its FIRST_RELEASE, 1.0.0, for every release type.
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@c5fa9d9794d0ebd289f51b247fe7872de0db9c27 # v7.10.9
