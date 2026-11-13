@@ -54,7 +54,7 @@ There is no `problem_copy` field. The problem statement is `findings[].text`.
 
 The source note did not set lengths. Format 1.1 adds these maximums. They are character lengths, except the icon, which is also capped at 8192 UTF-8 bytes. The schema's `maxLength` of 8192 on `icon` is a character cap of the same number. The validator rejects a value whose UTF-8 encoding is longer than 8192 bytes even when the character count is inside that cap.
 
-Plain text also rejects ASCII controls (U+0000 through U+001F), DEL and the C1 controls (U+007F through U+009F), and the line separators U+2028 and U+2029. A newline is a control character and is rejected. A value that is only whitespace is rejected. Write two sentences in `purpose` as one stored string.
+Plain text also rejects ASCII controls (U+0000 through U+001F), DEL and the C1 controls (U+007F through U+009F), and the line separators U+2028 and U+2029. A newline is a control character and is rejected. A value that is only whitespace is rejected. A value made only of Unicode format characters (category Cf) is rejected in the same way. U+FEFF and U+200B are two of those characters, and every other Cf character is treated the same. A format character next to a visible character is still plain text. Write two sentences in `purpose` as one stored string.
 
 An ampersand is allowed. `R&D` and `Q&A` validate. A consumer must escape `&` so it is shown as an ampersand. It is not decoded as an entity.
 
@@ -73,7 +73,7 @@ A run may include any number of results, and each result may include up to 50 fi
 
 ## Icons
 
-A catalog of known icons would hard-code evaluators into the report. The icon is a sanitised inline SVG on the descriptor.
+A catalog of known icons would hard-code evaluators into the report. The icon is a sanitised inline SVG on the descriptor. When a 1.1 or later result omits `descriptor.icon`, the same subset applies to `evaluator.icon`.
 
 The validator enforces this subset. Documentation alone does not.
 
@@ -148,9 +148,9 @@ The merged 1.0 result already has `evaluator.kind`, `evaluator.execution`, `eval
 
 **Payload kind.** `evaluator.kind` is the selector (`scenario` or `integrity`). The descriptor note's `kind` is display-only. Resolution: `descriptor.kind` is an optional plain-text label in its own object. It is not the enum. The selector is unchanged. A 1.0 document has no descriptor.
 
-**Display name and title.** Both name the evaluator. The note says an omitted title falls back to the word "Evaluator". This envelope already requires `display_name`. Resolution: when `descriptor.title` is present it must equal `evaluator.display_name`. Consumers show that string exactly and never append "evaluator". When `title` is omitted, consumers use `display_name`. The generic fallback "Evaluator" applies only when a descriptor has neither a title nor an envelope display name. This schema always has `display_name`, so that fallback does not arise on a document this schema accepts. 1.0 documents keep `display_name` and have no descriptor.
+**Display name and title.** Both name the evaluator. The note says an omitted title falls back to the word "Evaluator". This envelope already requires `display_name`. Resolution: when `descriptor.title` is present it must equal `evaluator.display_name`. Consumers show that string exactly and never append "evaluator". When `title` is omitted, consumers use `display_name`. The generic fallback "Evaluator" applies only when a descriptor has neither a title nor an envelope display name. This schema always has `display_name`, so that fallback does not arise on a document this schema accepts. On a result at format 1.1 or a later 1.minor, that omitted title also puts `evaluator.display_name` and `evaluator.publisher` under the descriptor plain-text pattern, because those are the strings a consumer shows. A 1.0 result keeps the 1.0 checks on those two fields.
 
-**Icon.** `evaluator.icon` is required. Its 1.0 check is only that the string is an `svg` element, so existing documents stay valid. The subset is stricter, and tightening `evaluator.icon` would be a breaking change for a 1.0 producer whose mark uses `text` or a paint colour. Resolution: when `descriptor.icon` is present it must be the same string as `evaluator.icon`, and that string must pass the subset. When `descriptor.icon` is omitted, this contract does not recheck `evaluator.icon` against the subset. A report that inlines an icon, including the envelope icon when the descriptor omits one, applies the same subset and uses the letter disc if the check fails.
+**Icon.** `evaluator.icon` is required. Its 1.0 check is only that the string is an `svg` element, so existing documents stay valid. The subset is stricter, and tightening `evaluator.icon` would be a breaking change for a 1.0 producer whose mark uses `text` or a paint colour. Resolution: when `descriptor.icon` is present it must be the same string as `evaluator.icon`, and that string must pass the subset. When `descriptor.icon` is omitted on a result at format 1.1 or a later 1.minor, `evaluator.icon` is checked against the same subset, because a consumer renders that mark. A 1.0 icon is not rechecked, so a 1.0 mark that uses `text` or a paint colour stays valid. A report that inlines an icon still applies the same subset and uses the letter disc if the check fails.
 
 **Version.** `evaluator.version` is required and is semantic versioning. The note's `version` is free text, "as the evaluator states it". Resolution: when `descriptor.version` is present it must equal `evaluator.version`. The details panel repeats the one version the envelope already states. This does not loosen the envelope version.
 
@@ -164,13 +164,13 @@ The merged 1.0 result already has `evaluator.kind`, `evaluator.execution`, `eval
 
 **Problem copy.** Issue 13 says the descriptor carries success, problem, and details copy. The note has `success_copy`, `details_copy`, and `findings[].text`. Resolution: follow the note. There is no `problem_copy` field.
 
-**Text limits.** The note says the report escapes text and does not interpret markup. It does not set lengths. Resolution: 1.1 adds the maximums in the tables and rejects `<`, `>`, and the controls listed above. An ampersand is allowed as plain text. Consumers must escape all text, including `&`, and must not interpret it as an entity.
+**Text limits.** The note says the report escapes text and does not interpret markup. It does not set lengths. Resolution: 1.1 adds the maximums in the tables and rejects `<`, `>`, the controls listed above, and a value made only of Unicode format characters. An ampersand is allowed as plain text. Consumers must escape all text, including `&`, and must not interpret it as an entity.
 
 **Source art.** The example SVG files use a `title` element and, in one case, a hex stroke. Both are outside the subset. Resolution: fixtures use the same paths, rewritten into the subset, and say so. The original art is example data, not a second allowed icon format.
 
 **The 1.0 consumer.** `consumer_accepts` keeps a fixed set of 1.0 keys. Resolution: `descriptor` is not in that set. A 1.0 consumer drops the object, including a malicious icon or a script in a finding, and validates the 1.0 fields. It does not run the SVG subset. Strict `validate_document` applies the descriptor schema and the subset. Both behaviours are tested. A 1.0 document that adds `descriptor` without bumping the format is rejected by the strict schema, because the field belongs to 1.1. The 1.0 consumer still accepts that document, because it drops the object.
 
-No conflict required a break of the merged 1.0 contract. Existing 1.0 results do not gain a required field, and their icons are not rechecked against the subset.
+No conflict required a break of the merged 1.0 contract. Existing 1.0 results do not gain a required field, and a 1.0 icon is not rechecked against the subset. A 1.1 or later result that omits `descriptor.icon` is rechecked, because that is the mark a consumer renders.
 
 ## What the report does with a descriptor
 
@@ -213,6 +213,6 @@ The marks are the example art, rewritten into the subset. `icon_accessible_name`
 
 ## Validating a 1.1 result
 
-`tools/validate_contract.py` validates the envelope, dispatches integrity checks, and, when `descriptor` is present, checks the title, the short title, the version, the icon equality, and the SVG subset.
+`tools/validate_contract.py` validates the envelope, dispatches integrity checks, and, when `descriptor` is present, checks the title, the short title, the version, the icon equality, and the SVG subset. On a 1.1 or later result that omits `descriptor.title`, it also applies the plain-text pattern to `evaluator.display_name` and `evaluator.publisher`. When that result omits `descriptor.icon`, it checks `evaluator.icon` against the SVG subset.
 
 A consumer of major version 1 still accepts any `livingproof-evaluator-result/1.<minor>` document. It drops `descriptor` with any other field it does not know. Strict validation of a 1.1 document applies the descriptor schema and the subset. A 1.0 producer does not emit a descriptor. The strict schema rejects a descriptor on format `1.0`.

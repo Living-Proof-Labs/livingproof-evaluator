@@ -36,16 +36,28 @@ jobs:
           version: "3.54.0"
       - run: task setup
       - run: task verify
+      # Summary mode lists cases and does not create a check run.
+      # continue-on-error keeps a reporter failure off the job result; the next step is the gate.
       - name: Publish test results
         id: report
         if: ${{ !cancelled() }}
+        continue-on-error: true
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
         with:
           name: Contract tests
           path: artifacts/tests.xml
           reporter: java-junit
-          fail-on-error: true
-          fail-on-empty: true
+          use-actions-summary: 'true'
+          fail-on-error: 'true'
+          fail-on-empty: 'true'
+      - name: JUnit gate and completed check run
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PUBLISH_CHECK: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: python tools/test_results.py --name "Contract tests" --path artifacts/tests.xml --publish-check "$PUBLISH_CHECK"
       - name: Retain the JUnit report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

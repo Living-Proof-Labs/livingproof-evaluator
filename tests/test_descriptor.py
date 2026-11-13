@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -160,6 +161,44 @@ def test_grade_is_independent_of_integrity_percentage() -> None:
     assert document["integrity"]["run"]["percentage"] == 60
 
 
+def test_committed_examples_stay_valid() -> None:
+    for example in example_dirs():
+        assert validate_document(load_json(example / "request.json")) == []
+        assert validate_document(load_json(example / "result.json")) == []
+
+
+def test_omitted_title_applies_plain_text_to_display_name_and_publisher() -> None:
+    markup = "<b>Scenario</b>"
+    omitted = _scenario_with_icon()
+    omitted["descriptor"].pop("title")
+    assert validate_document(omitted) == []
+
+    named = _copy(omitted)
+    named["evaluator"]["display_name"] = markup
+    assert any("display_name" in error for error in validate_document(named))
+    named["descriptor"]["title"] = "Scenario"
+    named["evaluator"]["display_name"] = "Scenario"
+    assert validate_document(named) == []
+
+    published = _copy(omitted)
+    published["evaluator"]["publisher"] = markup
+    errors = validate_document(published)
+    assert any("publisher" in error for error in errors)
+    assert all("display_name" not in error for error in errors)
+
+    present = _scenario_with_icon()
+    assert present["descriptor"]["title"] == present["evaluator"]["display_name"]
+    assert validate_document(present) == []
+    present["evaluator"]["publisher"] = markup
+    assert validate_document(present) == []
+
+    legacy = load_json(EXAMPLES / "scenario" / "graded" / "result.json")
+    assert legacy["format"] == "livingproof-evaluator-result/1.0.0"
+    legacy["evaluator"]["display_name"] = markup
+    legacy["evaluator"]["publisher"] = markup
+    assert validate_document(legacy) == []
+
+
 def test_title_matches_the_display_name_and_is_not_suffixed_by_the_consumer() -> None:
     document = _scenario_with_icon()
     document["descriptor"]["title"] = "Scenario evaluator"
@@ -190,6 +229,25 @@ def test_version_matches_the_envelope_version() -> None:
     document["descriptor"]["version"] = "9.9.9"
     errors = validate_document(document)
     assert any("version" in error for error in errors)
+
+
+def test_omitted_descriptor_icon_rechecks_evaluator_icon_on_later_results() -> None:
+    bad = _svg("<script>alert(1)</script>")
+    omitted = _scenario_with_icon()
+    omitted["descriptor"].pop("icon")
+    omitted["evaluator"]["icon"] = bad
+    errors = validate_document(omitted)
+    assert any("evaluator/icon" in error and "script" in error for error in errors)
+
+    present = _scenario_with_icon()
+    assert "icon" in present["descriptor"]
+    assert present["descriptor"]["icon"] == present["evaluator"]["icon"]
+    assert validate_document(present) == []
+
+    legacy = load_json(EXAMPLES / "scenario" / "graded" / "result.json")
+    assert legacy["format"] == "livingproof-evaluator-result/1.0.0"
+    legacy["evaluator"]["icon"] = bad
+    assert validate_document(legacy) == []
 
 
 def test_icon_matches_the_envelope_icon() -> None:
@@ -260,6 +318,40 @@ def test_trial_number_is_a_short_non_negative_integer(trial: object) -> None:
     document["descriptor"]["findings"][0]["trial"] = trial
     assert validate_document(document)
     document["descriptor"]["findings"][0]["trial"] = "7.5"
+    assert validate_document(document) == []
+
+
+def test_bom_only_and_zwsp_only_text_is_rejected() -> None:
+    document = _scenario_with_icon()
+    for text in ("\ufeff", "\u200b", "\ufeff\u200b", " \u200b"):
+        document["descriptor"]["purpose"] = text
+        assert validate_document(document)
+        document["descriptor"]["findings"][0]["text"] = text
+        document["descriptor"]["purpose"] = "Judges one scenario."
+        assert validate_document(document)
+    document["descriptor"]["purpose"] = "Visible\u200b text"
+    document["descriptor"]["findings"][0]["text"] = "The centerline\ufeff limit was missed."
+    assert validate_document(document) == []
+    omitted = _copy(document)
+    omitted["descriptor"].pop("title")
+    omitted["evaluator"]["display_name"] = "\ufeff"
+    assert any("display_name" in error for error in validate_document(omitted))
+    omitted["evaluator"]["display_name"] = document["evaluator"]["display_name"]
+    omitted["evaluator"]["publisher"] = "\u200b"
+    assert any("publisher" in error for error in validate_document(omitted))
+
+
+def test_other_format_characters_are_rejected_when_they_are_the_whole_value() -> None:
+    document = _scenario_with_icon()
+    format_chars = [
+        chr(code) for code in range(0x110000) if unicodedata.category(chr(code)) == "Cf"
+    ]
+    assert "\ufeff" in format_chars
+    assert "\u200b" in format_chars
+    for char in format_chars:
+        document["descriptor"]["purpose"] = char
+        assert validate_document(document), f"U+{ord(char):04X} was accepted"
+    document["descriptor"]["purpose"] = "Visible" + format_chars[0]
     assert validate_document(document) == []
 
 

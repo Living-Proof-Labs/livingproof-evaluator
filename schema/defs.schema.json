@@ -25,7 +25,7 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^<svg[\\s\\S]*</svg>$",
-      "description": "An SVG document owned by the publisher. This 1.0 check only requires an svg element. The strict subset applies to descriptor.icon. Contract examples use a placeholder mark. See docs/evaluator-descriptor.md."
+      "description": "An SVG document owned by the publisher. This 1.0 check only requires an svg element. The strict subset applies to descriptor.icon, and to evaluator.icon on a 1.1 or later result when descriptor.icon is omitted. Contract examples use a placeholder mark. See docs/evaluator-descriptor.md."
     },
     "evaluator": {
       "type": "object",
@@ -51,9 +51,13 @@
         "display_name": {
           "type": "string",
           "minLength": 1,
-          "description": "The evaluator's name. A 1.1 descriptor title, when present, is this same string. Consumers show it as written and do not append the word evaluator."
+          "description": "The evaluator's name. A 1.1 descriptor title, when present, is this same string. When that title is omitted on a 1.1 or later result, this value must match the descriptor plain-text pattern. Consumers show it as written and do not append the word evaluator."
         },
-        "publisher": {"type": "string", "minLength": 1},
+        "publisher": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Who publishes the evaluator. On a 1.1 or later result, when descriptor.title is omitted, this value must match the descriptor plain-text pattern."
+        },
         "icon": {"$ref": "#/$defs/svg"}
       }
     },
