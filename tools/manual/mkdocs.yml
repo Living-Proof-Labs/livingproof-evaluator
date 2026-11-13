@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+site_name: Living Proof Labs evaluator contract
+site_url: https://docs.livingprooflabs.com/livingproof-evaluator/
+use_directory_urls: false
+strict: true
+theme:
+  name: zensical
+  font: false
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      primary: custom
+      accent: custom
+      scheme: default
+      toggle: {icon: lucide/moon, name: Switch to dark mode}
+    - media: '(prefers-color-scheme: dark)'
+      primary: custom
+      accent: custom
+      scheme: slate
+      toggle: {icon: lucide/sun, name: Switch to light mode}
+markdown_extensions:
+  - tables
+  - toc: {permalink: true}
+  - pymdownx.superfences
+extra_css:
+  - assets/brand.css
+nav:
+  - Documentation home: https://docs.livingprooflabs.com/
+  - Start here: index.md
+  - Guides:
+      - Repository overview: overview.md
+      - Run integrity: docs/run-integrity.md
+      - Evaluator descriptor: docs/evaluator-descriptor.md
+  - Reference:
+      - Contracts: contracts.md
+      - Tasks: tasks.md
+  - Verification: docs/manual.md
+  - Contribute: docs/contribute.md
+  - Version and source: version.md
+  - License: LICENSE.md

@@ -2,6 +2,8 @@
 
 Evaluator contract for Living Proof Labs robot capability verification.
 
+**[Start here: documentation (source preview)](docs/index.md)** — rendered publication is pending verification.
+
 This repository holds:
 
 - The **observable vocabulary**: defined terms such as base, base_height, body contact and feet, each with meaning, frame and units.
