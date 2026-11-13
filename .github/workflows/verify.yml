@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-# Pull requests only, so this workflow does not run on main and does not publish Pages.
+# Pull requests, and called from release.yml on each push to main.
+# A direct push does not start this workflow. It does not publish Pages.
 # This repository has no published development image. Until one exists, this job is
 # the documented fallback: GitHub-hosted ubuntu-24.04, the pinned uv setup action,
 # and Task 3.54.0, running the same `task setup` and `task verify` commands as a
@@ -8,10 +9,14 @@
 name: Verify
 on:
   pull_request:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
-  group: verify-${{ github.event.pull_request.number }}
+  # A pull request shares one group, so a new push cancels the older run.
+  # A call from release.yml has no pull request number and uses the run id,
+  # so one publication does not cancel another.
+  group: verify-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 jobs:
   verify:
@@ -62,7 +67,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: junit-report-${{ github.event.pull_request.head.sha }}
+          name: junit-report-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/tests.xml
           retention-days: 30
           if-no-files-found: error
@@ -75,7 +80,7 @@ jobs:
             echo "Failed: ${{ steps.report.outputs.failed }}"
             echo "Skipped: ${{ steps.report.outputs.skipped }}"
             echo "Check: ${{ steps.report.outputs.url }}"
-            echo "Raw JUnit report retained for 30 days as artifact junit-report-${{ github.event.pull_request.head.sha }}."
+            echo "Raw JUnit report retained for 30 days as artifact junit-report-${{ github.event.pull_request.head.sha || github.sha }}."
           } >> "$GITHUB_STEP_SUMMARY"
       - name: actionlint
         if: ${{ !cancelled() }}
