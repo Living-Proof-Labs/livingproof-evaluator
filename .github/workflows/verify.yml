@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
-# Pull requests, and called from release.yml before a main publication.
-# A direct push does not start this workflow. It does not publish Pages.
+# Pull requests and pushes to main. release.yml calls this workflow before it
+# publishes, so a failed contract test does not cut a release. This workflow
+# does not publish Pages.
 # This repository has no published development image. Until one exists, this job is
 # the documented fallback: GitHub-hosted ubuntu-24.04, the pinned uv setup action,
 # and Task 3.54.0, running the same `task setup` and `task verify` commands as a
@@ -9,12 +10,15 @@
 name: Verify
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_call:
 permissions:
   contents: read
 concurrency:
-  # Pull requests share a group so a new push cancels the previous run. A main
-  # call from release.yml uses the run id, so one publication cannot cancel another.
+  # Pull requests share a group so a new push cancels the previous run. Main
+  # runs use the run id, so the direct Verify run and the release call do not
+  # cancel each other, and one publication cannot cancel another.
   group: verify-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 jobs:

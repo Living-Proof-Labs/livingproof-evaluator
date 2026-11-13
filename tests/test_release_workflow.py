@@ -114,6 +114,14 @@ def test_release_workflow_permissions_match_the_caller_set() -> None:
     ]
 
 
+def test_verify_triggers_on_pull_request_and_push_to_main() -> None:
+    body = _on_body(_text(VERIFY))
+    assert "pull_request:\n" in body
+    assert "  push:\n    branches: [main]\n" in body
+    for trigger in ("workflow_dispatch:", "schedule:", "workflow_run:"):
+        assert trigger not in body
+
+
 def test_verify_permissions_are_unchanged() -> None:
     blocks = _permission_blocks(_text(VERIFY))
     assert blocks == [
