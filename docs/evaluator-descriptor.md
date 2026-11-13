@@ -54,7 +54,7 @@ There is no `problem_copy` field. The problem statement is `findings[].text`.
 
 The source note did not set lengths. Format 1.1 adds these maximums. They are character lengths, except the icon, which is also capped at 8192 UTF-8 bytes. The schema's `maxLength` of 8192 on `icon` is a character cap of the same number. The validator rejects a value whose UTF-8 encoding is longer than 8192 bytes even when the character count is inside that cap.
 
-Plain text also rejects ASCII controls (U+0000 through U+001F), DEL and the C1 controls (U+007F through U+009F), and the line separators U+2028 and U+2029. A newline is a control character and is rejected. A value that is only whitespace is rejected. Write two sentences in `purpose` as one stored string.
+Plain text also rejects ASCII controls (U+0000 through U+001F), DEL and the C1 controls (U+007F through U+009F), and the line separators U+2028 and U+2029. A newline is a control character and is rejected. A value that is only whitespace is rejected. A value made only of Unicode format characters (category Cf) is rejected in the same way. U+FEFF and U+200B are two of those characters, and every other Cf character is treated the same. A format character next to a visible character is still plain text. Write two sentences in `purpose` as one stored string.
 
 An ampersand is allowed. `R&D` and `Q&A` validate. A consumer must escape `&` so it is shown as an ampersand. It is not decoded as an entity.
 
@@ -164,7 +164,7 @@ The merged 1.0 result already has `evaluator.kind`, `evaluator.execution`, `eval
 
 **Problem copy.** Issue 13 says the descriptor carries success, problem, and details copy. The note has `success_copy`, `details_copy`, and `findings[].text`. Resolution: follow the note. There is no `problem_copy` field.
 
-**Text limits.** The note says the report escapes text and does not interpret markup. It does not set lengths. Resolution: 1.1 adds the maximums in the tables and rejects `<`, `>`, and the controls listed above. An ampersand is allowed as plain text. Consumers must escape all text, including `&`, and must not interpret it as an entity.
+**Text limits.** The note says the report escapes text and does not interpret markup. It does not set lengths. Resolution: 1.1 adds the maximums in the tables and rejects `<`, `>`, the controls listed above, and a value made only of Unicode format characters. An ampersand is allowed as plain text. Consumers must escape all text, including `&`, and must not interpret it as an entity.
 
 **Source art.** The example SVG files use a `title` element and, in one case, a hex stroke. Both are outside the subset. Resolution: fixtures use the same paths, rewritten into the subset, and say so. The original art is example data, not a second allowed icon format.
 

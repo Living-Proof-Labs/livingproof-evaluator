@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from pathlib import Path
 
 import pytest
@@ -317,6 +318,40 @@ def test_trial_number_is_a_short_non_negative_integer(trial: object) -> None:
     document["descriptor"]["findings"][0]["trial"] = trial
     assert validate_document(document)
     document["descriptor"]["findings"][0]["trial"] = "7.5"
+    assert validate_document(document) == []
+
+
+def test_bom_only_and_zwsp_only_text_is_rejected() -> None:
+    document = _scenario_with_icon()
+    for text in ("\ufeff", "\u200b", "\ufeff\u200b", " \u200b"):
+        document["descriptor"]["purpose"] = text
+        assert validate_document(document)
+        document["descriptor"]["findings"][0]["text"] = text
+        document["descriptor"]["purpose"] = "Judges one scenario."
+        assert validate_document(document)
+    document["descriptor"]["purpose"] = "Visible\u200b text"
+    document["descriptor"]["findings"][0]["text"] = "The centerline\ufeff limit was missed."
+    assert validate_document(document) == []
+    omitted = _copy(document)
+    omitted["descriptor"].pop("title")
+    omitted["evaluator"]["display_name"] = "\ufeff"
+    assert any("display_name" in error for error in validate_document(omitted))
+    omitted["evaluator"]["display_name"] = document["evaluator"]["display_name"]
+    omitted["evaluator"]["publisher"] = "\u200b"
+    assert any("publisher" in error for error in validate_document(omitted))
+
+
+def test_other_format_characters_are_rejected_when_they_are_the_whole_value() -> None:
+    document = _scenario_with_icon()
+    format_chars = [
+        chr(code) for code in range(0x110000) if unicodedata.category(chr(code)) == "Cf"
+    ]
+    assert "\ufeff" in format_chars
+    assert "\u200b" in format_chars
+    for char in format_chars:
+        document["descriptor"]["purpose"] = char
+        assert validate_document(document), f"U+{ord(char):04X} was accepted"
+    document["descriptor"]["purpose"] = "Visible" + format_chars[0]
     assert validate_document(document) == []
 
 
