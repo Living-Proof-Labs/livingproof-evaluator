@@ -1,5 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "description": "Inherits the shared policy: internal releases on the next bot run, external updates weekly, automerge off. Local manager and lock-maintenance choices are preserved.",
-  "extends": ["github>Living-Proof-Labs/collaboration-guidelines:renovate-preset#v7.10.8"]
+  "extends": ["github>Living-Proof-Labs/collaboration-guidelines:renovate-preset#v7.10.9"]
 }
