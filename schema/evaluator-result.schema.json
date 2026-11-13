@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/evaluator-result.schema.json",
   "title": "livingproof-evaluator-result/1.1.0",
   "description": "Shared result envelope. A scenario result carries step verdicts. An integrity result carries test-system status, success, percentage, and findings. An integrity result cannot include the scenario payload. Format 1.1.0 may add an optional descriptor. A 1.0 format must not include one. Documents that already validated as 1.0.0 still validate.",
   "type": "object",

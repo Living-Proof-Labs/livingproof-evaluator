@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/request.schema.json",
   "title": "Run integrity request payload",
   "description": "One run's manifest, verification lock, and trial evidence. Check-specific artifacts live under evidence, keyed by the check id. The common payload does not list those keys, so a new check can add evidence without a new payload version. Each check schema validates its own evidence object.",
   "type": "object",

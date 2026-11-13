@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/ci-publisher.schema.json",
   "title": "ci-publisher 1.0.0",
   "description": "A check run left open after the publisher received HTTP 404 is a test-system finding. The result has no robot verdict. percentage is 100 times the number of check runs that are not in that state divided by the number of check runs. Evidence for this check is evidence['ci-publisher'].",
   "$defs": {

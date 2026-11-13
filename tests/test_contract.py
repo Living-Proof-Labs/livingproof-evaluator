@@ -38,6 +38,37 @@ def canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
 
 
+def _nested_ids(value: object):
+    if isinstance(value, dict):
+        if "$id" in value:
+            yield value["$id"]
+        for child in value.values():
+            yield from _nested_ids(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _nested_ids(child)
+
+
+def _id_names_a_repo_file(schema_id: object) -> bool:
+    """A non-URL id names a file in this checkout. An https id does not."""
+    if not isinstance(schema_id, str) or "://" in schema_id:
+        return False
+    candidate = (ROOT / schema_id).resolve()
+    try:
+        candidate.relative_to(ROOT.resolve())
+    except ValueError:
+        return False
+    return candidate.is_file()
+
+
+def test_schema_ids_resolve_to_a_repo_file_or_are_absent() -> None:
+    paths = sorted(SCHEMA_ROOT.rglob("*.json"))
+    assert paths
+    for path in paths:
+        for schema_id in _nested_ids(load_json(path)):
+            assert _id_names_a_repo_file(schema_id), schema_id
+
+
 def test_schemas_are_draft_2020_12() -> None:
     registry = schema_registry()
     assert registry.contents(

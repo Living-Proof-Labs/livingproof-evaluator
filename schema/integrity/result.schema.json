@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/result.schema.json",
   "title": "Run integrity result payload",
   "description": "Test-system status for the run and for each planned trial, plus the checks that were reported. success and percentage are the quantitative result. percentage is a share from 0 to 100, and the document has no count of successes out of a count of trials. A failed check marks the run ERROR and INCONCLUSIVE. This schema has no robot verdict: verdict, grade, pass, and fail are rejected, and finding categories are lowercase slugs.",
   "type": "object",

@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/scenario/result.schema.json",
   "title": "Scenario evaluator result payload",
   "description": "Robot results for one trial: one verdict per step. NOT_EVALUATED is the not-evaluated result for an unknown step or an unbound observable. The reason is unknown_step or unbound_observable. This payload has no test-system status. Folding step verdicts into a grade is deferred.",
   "type": "object",
