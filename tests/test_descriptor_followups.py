@@ -171,10 +171,6 @@ def _patterns(value: object, where: str):
             yield from _patterns(child, f"{where}/{index}")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="PR 19 descriptor $defs/plain uses Python-only \\U escapes (Vera review)",
-)
 def test_schema_patterns_use_ecma_262_syntax() -> None:
     found = []
     for path in sorted(SCHEMA_ROOT.rglob("*.json")):
