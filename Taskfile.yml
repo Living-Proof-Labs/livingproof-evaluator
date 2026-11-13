@@ -28,3 +28,16 @@ tasks:
     cmds:
       - task: check
       - task: test
+  manual:setup:
+    desc: Install hash-locked manual tools in an isolated environment
+    cmds:
+      - uv venv --python 3.12 .venv-docs
+      - uv pip sync --python .venv-docs/bin/python --require-hashes tools/manual/requirements.lock
+  manual:build:
+    desc: Build the branded contract manual and generated reference
+    cmds:
+      - .venv-docs/bin/python tools/manual/build.py
+  manual:verify:
+    desc: Check rendered links, source identity, brand, and browser navigation
+    cmds:
+      - .venv-docs/bin/python -m pytest tools/manual/tests -q --junitxml=artifacts/manual/tests.xml
