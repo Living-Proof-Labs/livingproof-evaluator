@@ -114,12 +114,32 @@ def test_release_workflow_permissions_match_the_caller_set() -> None:
     ]
 
 
-def test_verify_triggers_on_pull_request_and_push_to_main() -> None:
-    body = _on_body(_text(VERIFY))
-    assert "pull_request:\n" in body
-    assert "  push:\n    branches: [main]\n" in body
-    for trigger in ("workflow_dispatch:", "schedule:", "workflow_run:"):
-        assert trigger not in body
+def test_verify_runs_on_main_once_through_release() -> None:
+    verify = _text(VERIFY)
+    assert _on_body(verify) == "  pull_request:\n  workflow_call:\n"
+    assert "push:" not in _on_body(verify)
+    assert "workflow_run:" not in verify
+
+    release = _text(RELEASE)
+    assert _on_body(release) == "  push:\n    branches: [main]\n"
+    assert "workflow_run:" not in release
+    calls = re.findall(
+        r"^    uses: \./\.github/workflows/verify\.yml\s*$",
+        release,
+        re.MULTILINE,
+    )
+    assert calls == ["    uses: ./.github/workflows/verify.yml"]
+
+    contract = re.compile(r"(?m)^[ \t]*- run: task verify\s*$")
+    caller = re.compile(r"(?m)^[ \t]*uses: \./\.github/workflows/verify\.yml\s*$")
+    workflows = ROOT / ".github" / "workflows"
+    for path in sorted(workflows.glob("*.yml")):
+        if path.name in {"release.yml", "manual.yml"}:
+            continue
+        text = path.read_text()
+        pushes_main = bool(re.search(r"(?m)^  push:\n    branches: \[main\]\n", _on_body(text)))
+        runs_contract = bool(caller.search(text) or contract.search(text))
+        assert not (pushes_main and runs_contract)
 
 
 def test_verify_permissions_are_unchanged() -> None:
