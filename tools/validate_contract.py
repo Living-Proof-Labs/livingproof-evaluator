@@ -6,7 +6,8 @@ rejects verdict-like finding categories. Each integrity check is then validated
 against the schema named in schema/integrity/checks/registry.json. A 1.1 result
 may carry a descriptor. Strict validation applies that schema and the SVG
 subset. On a 1.1 or later result, an omitted descriptor title makes
-display_name and publisher follow the descriptor plain-text pattern.
+display_name and publisher follow the descriptor plain-text pattern, and an
+omitted descriptor icon is checked against the SVG subset.
 A consumer of major version 1 also accepts a later 1.minor document by
 ignoring an unknown kind and unknown fields, including the descriptor.
 """
@@ -94,6 +95,7 @@ def validate_document(document: dict) -> list[str]:
         errors.extend(dispatch_checks(document))
     if _LATER_RESULT.fullmatch(str(document.get("format", ""))):
         errors.extend(_omitted_title_plain_text_errors(document))
+        errors.extend(_omitted_icon_subset_errors(document))
     if isinstance(document, dict) and "descriptor" in document:
         errors.extend(descriptor_errors(document))
     return errors
@@ -116,6 +118,20 @@ def _omitted_title_plain_text_errors(document: dict) -> list[str]:
                 "without markup or controls, because descriptor.title is omitted"
             )
     return errors
+
+
+def _omitted_icon_subset_errors(document: dict) -> list[str]:
+    """A later result with no descriptor icon renders evaluator.icon, so it must be in the subset."""
+    descriptor = document.get("descriptor")
+    if isinstance(descriptor, dict) and "icon" in descriptor:
+        return []
+    evaluator = document.get("evaluator")
+    if not isinstance(evaluator, dict):
+        return []
+    icon = evaluator.get("icon")
+    if not isinstance(icon, str):
+        return []
+    return [f"evaluator/icon: {item}" for item in svg_subset_errors(icon)]
 
 
 def _local(name: str) -> str:

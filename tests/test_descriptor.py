@@ -230,6 +230,25 @@ def test_version_matches_the_envelope_version() -> None:
     assert any("version" in error for error in errors)
 
 
+def test_omitted_descriptor_icon_rechecks_evaluator_icon_on_later_results() -> None:
+    bad = _svg("<script>alert(1)</script>")
+    omitted = _scenario_with_icon()
+    omitted["descriptor"].pop("icon")
+    omitted["evaluator"]["icon"] = bad
+    errors = validate_document(omitted)
+    assert any("evaluator/icon" in error and "script" in error for error in errors)
+
+    present = _scenario_with_icon()
+    assert "icon" in present["descriptor"]
+    assert present["descriptor"]["icon"] == present["evaluator"]["icon"]
+    assert validate_document(present) == []
+
+    legacy = load_json(EXAMPLES / "scenario" / "graded" / "result.json")
+    assert legacy["format"] == "livingproof-evaluator-result/1.0.0"
+    legacy["evaluator"]["icon"] = bad
+    assert validate_document(legacy) == []
+
+
 def test_icon_matches_the_envelope_icon() -> None:
     document = _scenario_with_icon()
     document["descriptor"].pop("icon")
