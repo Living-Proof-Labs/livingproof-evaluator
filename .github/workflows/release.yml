@@ -20,4 +20,4 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
-    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@8c8155ec9db30dbe19ce5c2a71cf10f3f71271b0 # v9.2.0
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@dac1f0ad5454d03107a0d71cd953a6d08244511b # v9.4.0
