@@ -13,9 +13,9 @@ VERIFY = ROOT / ".github" / "workflows" / "verify.yml"
 GUIDELINES_WORKFLOW = (
     "Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml"
 )
-# collaboration-guidelines v7.10.9. The workflow file is unchanged from v7.10.8.
-PINNED_COMMIT = "c5fa9d9794d0ebd289f51b247fe7872de0db9c27"
-PINNED_TAG = "v7.10.9"
+# collaboration-guidelines v9.2.0. The workflow file is byte-identical to v7.10.9.
+PINNED_COMMIT = "8c8155ec9db30dbe19ce5c2a71cf10f3f71271b0"
+PINNED_TAG = "v9.2.0"
 ALLOWED_SECRET_NAMES = {"GITHUB_TOKEN", "github.token"}
 RELEASE_CONFIG_NAMES = (
     "release.config.js",

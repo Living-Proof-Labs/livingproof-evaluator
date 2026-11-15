@@ -12,7 +12,7 @@ jobs:
       checks: write
     uses: ./.github/workflows/verify.yml
   release:
-    # semantic-release.yml at v7.10.9 analyzes conventional commits, then tags
+    # semantic-release.yml at v9.2.0 analyzes conventional commits, then tags
     # v${version} and publishes a GitHub release. It does not write a version
     # into pyproject.toml. With no tag on main, semantic-release 25.0.9
     # publishes its FIRST_RELEASE, 1.0.0, for every release type.
