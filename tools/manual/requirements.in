@@ -1,4 +1,4 @@
 # SPDX-License-Identifier: Apache-2.0
-zensical==0.0.73
+zensical==0.1.1
 pytest==8.4.2
 playwright==1.65.2
