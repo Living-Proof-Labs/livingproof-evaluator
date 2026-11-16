@@ -12,7 +12,7 @@ jobs:
       checks: write
     uses: ./.github/workflows/verify.yml
   release:
-    # semantic-release.yml at v9.2.0 analyzes conventional commits, then tags
+    # The pinned semantic-release.yml analyzes conventional commits, then tags
     # v${version} and publishes a GitHub release. It does not write a version
     # into pyproject.toml. With no tag on main, semantic-release 25.0.9
     # publishes its FIRST_RELEASE, 1.0.0, for every release type.
@@ -20,4 +20,4 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
-    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@8c8155ec9db30dbe19ce5c2a71cf10f3f71271b0 # v9.2.0
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@dac1f0ad5454d03107a0d71cd953a6d08244511b # v9.4.0

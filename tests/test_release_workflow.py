@@ -13,9 +13,8 @@ VERIFY = ROOT / ".github" / "workflows" / "verify.yml"
 GUIDELINES_WORKFLOW = (
     "Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml"
 )
-# collaboration-guidelines v9.2.0. The workflow file is byte-identical to v7.10.9.
-PINNED_COMMIT = "8c8155ec9db30dbe19ce5c2a71cf10f3f71271b0"
-PINNED_TAG = "v9.2.0"
+RENOVATE = ROOT / "renovate.json"
+AGENTS = ROOT / "AGENTS.md"
 ALLOWED_SECRET_NAMES = {"GITHUB_TOKEN", "github.token"}
 RELEASE_CONFIG_NAMES = (
     "release.config.js",
@@ -83,17 +82,54 @@ def test_release_workflow_triggers_only_on_push_to_main() -> None:
     assert "if: github.event_name == 'push' && github.ref == 'refs/heads/main'\n" in release
 
 
-def test_release_workflow_pins_guidelines_commit_with_tag_comment() -> None:
-    text = _text(RELEASE)
-    match = re.search(
-        rf"^    uses: {re.escape(GUIDELINES_WORKFLOW)}@(?P<sha>[0-9a-f]{{40}}) # (?P<tag>v\d+\.\d+\.\d+)\s*$",
+def _guidelines_pins(text: str) -> list[tuple[str, str]]:
+    return re.findall(
+        rf"^    uses: {re.escape(GUIDELINES_WORKFLOW)}@([0-9a-f]{{40}}) # (v\d+\.\d+\.\d+)\s*$",
         text,
         re.MULTILINE,
     )
-    assert match is not None
-    assert match.group("sha") == PINNED_COMMIT
-    assert len(match.group("sha")) == 40
-    assert match.group("tag") == PINNED_TAG
+
+
+def test_release_workflow_pins_guidelines_commit_with_tag_comment() -> None:
+    """The shared workflow is pinned by full commit SHA with its release tag.
+
+    Renovate moves the SHA and tag together, so this checks shape and that the
+    tag agrees with the other Renovate-managed guidelines references instead of
+    freezing one release.
+    """
+
+    text = _text(RELEASE)
+    pins = _guidelines_pins(text)
+    assert len(pins) == 1
+    assert text.count(f"{GUIDELINES_WORKFLOW}@") == 1
+    sha, tag = pins[0]
+    assert len(sha) == 40
+    assert set(sha) != {"0"}
+
+    preset = re.search(r"renovate-preset#(v\d+\.\d+\.\d+)\"", _text(RENOVATE))
+    assert preset is not None
+    assert preset.group(1) == tag
+
+    agents = re.search(
+        r"\[collaboration-guidelines (v\d+\.\d+\.\d+)\]\("
+        r"https://github\.com/Living-Proof-Labs/collaboration-guidelines/blob/(v\d+\.\d+\.\d+)/AGENTS\.md\)",
+        _text(AGENTS),
+    )
+    assert agents is not None
+    assert agents.group(1) == agents.group(2) == tag
+
+
+def test_guidelines_pin_rejects_mutable_or_mismatched_refs() -> None:
+    good = f"    uses: {GUIDELINES_WORKFLOW}@{'a' * 40} # v1.2.3\n"
+    assert _guidelines_pins(good) == [("a" * 40, "v1.2.3")]
+    for bad in (
+        f"    uses: {GUIDELINES_WORKFLOW}@v1.2.3\n",
+        f"    uses: {GUIDELINES_WORKFLOW}@main # v1.2.3\n",
+        f"    uses: {GUIDELINES_WORKFLOW}@{'a' * 39} # v1.2.3\n",
+        f"    uses: {GUIDELINES_WORKFLOW}@{'a' * 40}\n",
+        f"    uses: {GUIDELINES_WORKFLOW}@{'A' * 40} # v1.2.3\n",
+    ):
+        assert _guidelines_pins(bad) == []
 
 
 def test_release_workflow_references_no_other_secrets() -> None:
