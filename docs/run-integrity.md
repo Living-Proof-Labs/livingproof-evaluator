@@ -44,7 +44,7 @@ The first three are the checks named on issue 6. `ci-publisher` is the check nam
 
 ### Plan conformance, termination, and recording
 
-These three checks are registered together at 1.0.0, and they stay there: the not-checked change below needs no bump for them. They are the contract for the evaluator implementation that builds them next. The contract carries the rule, the evidence, and the finding categories. Reading a trial file or an MCAP recording belongs to the implementation, which puts what it read into `evidence.<check id>`.
+These three checks were registered together at 1.0.0. The not-checked change below needs no bump for plan-conformance and recording, so they stay at 1.0.0. termination moved to 1.1.0 for a different reason: it never allows `simulation-broken`. They are the contract for the evaluator implementation that builds them next. The contract carries the rule, the evidence, and the finding categories. Reading a trial file or an MCAP recording belongs to the implementation, which puts what it read into `evidence.<check id>`.
 
 **`plan-conformance`.** The evidence is the plan's trial count and command speed, `trials.count`, the `trials.results` entries (`index` and `path`), and the lock's own plan when the manifest embeds a lock block.
 
