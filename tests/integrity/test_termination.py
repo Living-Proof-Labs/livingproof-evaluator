@@ -53,7 +53,7 @@ def test_every_allowed_stop_reason_is_clean() -> None:
     assert check["percentage"] == 100
     assert check["findings"] == []
     assert check["referrals"] == []
-    matches_rules(check, termination(request["integrity"], VOCAB_ENUM))
+    matches_rules(check, termination(request["integrity"], VOCAB_ENUM, "1.0.0"))
 
 
 def test_every_finding_category_has_a_triggering_trial() -> None:
@@ -69,7 +69,7 @@ def test_every_finding_category_has_a_triggering_trial() -> None:
     assert check["percentage"] == 20
     assert check["success"] is False
     assert all(item["classification"] == "test_system" for item in check["findings"])
-    matches_rules(check, termination(request["integrity"], VOCAB_ENUM))
+    matches_rules(check, termination(request["integrity"], VOCAB_ENUM, "1.0.0"))
     assert result["integrity"]["run"]["conclusion"] == "INCONCLUSIVE"
 
 
@@ -80,12 +80,12 @@ def test_the_simulation_breaking_is_a_finding_unless_the_plan_allows_it() -> Non
     assert "simulation-broken" not in evidence["allowed_stop_reasons"]
     assert any(
         item["category"] == "disallowed-stop-reason"
-        for item in termination(payload, VOCAB_ENUM)["findings"]
+        for item in termination(payload, VOCAB_ENUM, "1.0.0")["findings"]
     )
     evidence["allowed_stop_reasons"].append("simulation-broken")
     assert not any(
         item["category"] == "disallowed-stop-reason"
-        for item in termination(payload, VOCAB_ENUM)["findings"]
+        for item in termination(payload, VOCAB_ENUM, "1.0.0")["findings"]
     )
 
 
@@ -140,7 +140,7 @@ def test_a_timeout_and_a_crash_yield_exactly_one_finding_across_both_checks() ->
     counts = completeness_and_termination_findings(result)
     assert counts == {"trial-timeout": 1, "trial-crash": 1}
     assert_each_ending_is_reported_once(result)
-    matches_rules(termination_check, termination(request["integrity"], VOCAB_ENUM))
+    matches_rules(termination_check, termination(request["integrity"], VOCAB_ENUM, "1.0.0"))
     assert termination_check["referrals"] == [
         {"trial_id": "trial-timeout", "check": "completeness", "category": "ended-by-timeout"},
         {"trial_id": "trial-crash", "check": "completeness", "category": "ended-by-crash"},
@@ -174,14 +174,14 @@ def test_the_rules_never_raise_a_termination_finding_for_a_timeout_or_crash() ->
     payload = json.loads(json.dumps(request["integrity"]))
     # No trial records a stop reason. Only the trial that ended on its own is a finding.
     payload["evidence"]["termination"]["trials"] = []
-    expected = termination(payload, VOCAB_ENUM)
+    expected = termination(payload, VOCAB_ENUM, "1.0.0")
     assert {item["trial_id"] for item in expected["findings"]} == {"trial-ended"}
     assert {item["trial_id"] for item in expected["referrals"]} == {"trial-timeout", "trial-crash"}
     only_ended_early = json.loads(json.dumps(payload))
     only_ended_early["trials"] = [
         t for t in only_ended_early["trials"] if t["termination"] != "completed"
     ]
-    result = termination(only_ended_early, VOCAB_ENUM)
+    result = termination(only_ended_early, VOCAB_ENUM, "1.0.0")
     assert result["findings"] == []
     assert result["applicable"] is False
     assert "percentage" not in result
@@ -250,3 +250,53 @@ def test_the_evidence_schema_rejects_an_unlisted_allowed_reason_and_a_verdict() 
     with_verdict["trials"][0]["verdict"] = "PASS"
     assert_invalid(SCHEMA["$defs"]["evidence"], with_verdict)
     assert_valid(SCHEMA["$defs"]["evidence"], evidence)
+
+
+# termination 1.1.0 (livingproof-evaluator#34, Vera on evaluator-run#15): never simulation-broken.
+
+
+def test_a_plan_cannot_allow_a_broken_simulation() -> None:
+    """1.0.0 let a plan list simulation-broken and so tolerate it. From 1.1.0 it is never
+    allowed, so it always surfaces as a Run Integrity failure."""
+    example = ROOT / "examples" / "integrity" / "termination" / "simulation-broken"
+    request = load_json(example / "request.json")
+    result = load_json(example / "result.json")
+    evidence = request["integrity"]["evidence"]["termination"]
+    assert "simulation-broken" in evidence["allowed_stop_reasons"]
+    check = reported(result, "termination")
+    assert check["version"] == "1.1.0"
+    assert finding_keys(check) == [("disallowed-stop-reason", "trial-broken")]
+    assert check["findings"][0]["summary"] == "The stop reason simulation-broken is never allowed."
+    assert check["percentage"] == 50
+    assert result["integrity"]["run"]["conclusion"] == "INCONCLUSIVE"
+    matches_rules(check, termination(request["integrity"], VOCAB_ENUM, "1.1.0"))
+
+
+def test_1_0_0_still_allows_it_when_the_plan_lists_it() -> None:
+    example = ROOT / "examples" / "integrity" / "termination" / "simulation-broken"
+    payload = load_json(example / "request.json")["integrity"]
+    assert termination(payload, VOCAB_ENUM, "1.0.0")["findings"] == []
+    assert termination(payload, VOCAB_ENUM)["findings"] != []  # 1.1.0 is the default
+
+
+def test_the_other_reasons_are_still_the_plans_to_allow() -> None:
+    payload = load_json(EXAMPLES / "clean" / "request.json")["integrity"]
+    assert termination(payload, VOCAB_ENUM, "1.1.0")["findings"] == []
+    payload["evidence"]["termination"]["allowed_stop_reasons"] = ["mission-done"]
+    categories = {
+        item["category"] for item in termination(payload, VOCAB_ENUM, "1.1.0")["findings"]
+    }
+    assert categories == {"disallowed-stop-reason"}
+
+
+def test_a_list_that_names_simulation_broken_stays_a_valid_request() -> None:
+    from support import request_schema
+
+    example = ROOT / "examples" / "integrity" / "termination" / "simulation-broken"
+    assert_valid(request_schema(), load_json(example / "request.json"))
+
+
+def test_the_existing_termination_examples_are_still_1_0_0() -> None:
+    for name in ("clean", "findings", "timeout-single-report"):
+        result = load_json(EXAMPLES / name / "result.json")
+        assert reported(result, "termination")["version"] == "1.0.0"

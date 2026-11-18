@@ -56,7 +56,7 @@
     "pins": {
       "type": "object",
       "unevaluatedProperties": false,
-      "required": ["specs", "runner", "verifier", "world", "configuration"],
+      "description": "The pin hashes a run recorded or a lock declared. Any of the five may be left out. The pins check lists a subject it cannot compare in not_checked and does not count it.",
       "properties": {
         "specs": {"$ref": "#/$defs/pin"},
         "runner": {"$ref": "#/$defs/pin"},

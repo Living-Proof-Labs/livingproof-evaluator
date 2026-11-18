@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from integrity_rules import completeness_applicable
 from support import ROOT, load_json
 
 EXAMPLE = ROOT / "examples" / "integrity" / "completeness"
@@ -50,3 +51,47 @@ def test_every_completeness_category_has_a_triggering_trial() -> None:
     assert result["run"]["conclusion"] == "INCONCLUSIVE"
     assert result["trials"][0]["success"] is True
     assert all(trial["success"] is False for trial in result["trials"][1:])
+
+
+# completeness 1.1.0 (livingproof-evaluator#34): follow plan-conformance's applicability.
+
+
+def test_unmet_preconditions_make_completeness_not_applicable() -> None:
+    """A run whose preconditions are unmet ran no trials. 1.0.0 counted every planned trial as
+    missing and the run read ERROR where the verifier grades UNSUPPORTED."""
+    example = ROOT / "examples" / "integrity" / "completeness-preconditions-unmet"
+    request = load_json(example / "request.json")["integrity"]
+    result = load_json(example / "result.json")["integrity"]
+    assert request["evidence"]["plan-conformance"]["preconditions"]["met"] is False
+    assert request["trials"] == []
+    check = next(c for c in result["checks"] if c["id"] == "completeness")
+    assert check["version"] == "1.1.0"
+    assert check["applicable"] is False and check["success"] is True
+    assert check["findings"] == [] and "percentage" not in check
+    assert completeness_applicable(request) is False
+    plan = next(c for c in result["checks"] if c["id"] == "plan-conformance")
+    assert plan["applicable"] is False
+    # Nothing is wrong with the planned trials, and nothing applicable failed.
+    assert result["run"]["test_system_status"] == "COMPLETED"
+    assert result["run"]["percentage"] == 100
+    assert all(trial["success"] is True for trial in result["trials"])
+    assert len(result["trials"]) == len(request["manifest"]["planned_trials"])
+
+
+def test_completeness_still_judges_a_run_whose_preconditions_are_met_or_unstated() -> None:
+    request = load_json(EXAMPLE / "request.json")["integrity"]
+    assert completeness_applicable(request) is True
+    request["evidence"] = {"plan-conformance": {"preconditions": {"met": True}}}
+    assert completeness_applicable(request) is True
+
+
+def test_version_1_0_0_was_always_applicable() -> None:
+    request = load_json(EXAMPLE / "request.json")["integrity"]
+    request["evidence"] = {"plan-conformance": {"preconditions": {"met": False}}}
+    assert completeness_applicable(request, "1.0.0") is True
+    assert completeness_applicable(request, "1.1.0") is False
+
+
+def test_the_existing_completeness_example_is_still_1_0_0() -> None:
+    result = load_json(EXAMPLE / "result.json")["integrity"]
+    assert result["checks"][0]["version"] == "1.0.0"

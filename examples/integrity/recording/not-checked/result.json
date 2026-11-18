@@ -1,0 +1,172 @@
+{
+  "format": "livingproof-evaluator-result/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "cd6bef765eadb77256c48f33712600e5cbef0984f822a2192aaac931b53feca1"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "505da5c25c658b7e71c5eb2ebb30711f16b4115424e8d66c2aaafb2bed9e80df"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "2d82f29c9c5ce31b52f1b53d64c030dd38a6412e1fa9dc6aa2ed0e9758ffe94c"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-11-18T10:10:01Z",
+    "completed_at": "2026-11-18T10:10:02Z"
+  },
+  "integrity": {
+    "run": {
+      "id": "example-recording-not-checked",
+      "test_system_status": "ERROR",
+      "conclusion": "INCONCLUSIVE",
+      "success": false,
+      "percentage": 16.666666666666668
+    },
+    "trials": [
+      {
+        "id": "trial-usable",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-incomplete",
+        "test_system_status": "ERROR",
+        "success": false,
+        "percentage": 0
+      },
+      {
+        "id": "trial-channel",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-backwards",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-gap",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-file-mismatch",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-link",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-absent-file",
+        "test_system_status": "ERROR",
+        "success": false,
+        "percentage": 0
+      }
+    ],
+    "checks": [
+      {
+        "id": "completeness",
+        "version": "1.1.0",
+        "applicable": true,
+        "success": false,
+        "percentage": 75.0,
+        "findings": [
+          {
+            "category": "truncated-recording",
+            "classification": "test_system",
+            "summary": "Trial trial-incomplete has a truncated recording.",
+            "trial_id": "trial-incomplete"
+          },
+          {
+            "category": "missing-recording",
+            "classification": "test_system",
+            "summary": "Trial trial-absent-file has no recording.",
+            "trial_id": "trial-absent-file"
+          }
+        ]
+      },
+      {
+        "id": "recording",
+        "version": "1.1.0",
+        "applicable": true,
+        "success": false,
+        "percentage": 16.666666666666668,
+        "limits": {
+          "max_gap_seconds": 0.1
+        },
+        "findings": [
+          {
+            "category": "missing-channel",
+            "classification": "test_system",
+            "summary": "The required channel /joint_states is absent or has no messages.",
+            "trial_id": "trial-channel"
+          },
+          {
+            "category": "timestamps-backwards",
+            "classification": "test_system",
+            "summary": "Channel /base_pose has 3 timestamps that go backwards.",
+            "trial_id": "trial-backwards"
+          },
+          {
+            "category": "message-gap-exceeded",
+            "classification": "test_system",
+            "summary": "Channel /joint_states has a gap of 0.5 s, over the limit of 0.1 s.",
+            "trial_id": "trial-gap"
+          },
+          {
+            "category": "media-file-mismatch",
+            "classification": "test_system",
+            "summary": "The recording's size or sha256 differs from media.json.",
+            "trial_id": "trial-file-mismatch"
+          },
+          {
+            "category": "observation-link-mismatch",
+            "classification": "test_system",
+            "summary": "The observation_sha256 in media.json differs from the run evidence.",
+            "trial_id": "trial-link"
+          }
+        ],
+        "not_checked": [
+          {
+            "trial_id": "trial-incomplete",
+            "reason": "not-present"
+          },
+          {
+            "trial_id": "trial-absent-file",
+            "reason": "not-present"
+          }
+        ]
+      }
+    ]
+  }
+}

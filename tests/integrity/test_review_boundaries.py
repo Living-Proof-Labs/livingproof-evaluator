@@ -194,7 +194,7 @@ def test_evidence_for_a_recording_completeness_does_not_call_present_is_ignored(
     """Mutation that survived: judging trials whose recording is not present. The shipped
     fixture leaves the missing trial out of the evidence, so the rule was never exercised."""
     payload = recording_payload()
-    before = recording(payload)
+    before = recording(payload, "1.0.0")  # the published 1.0.0 request
     donor = next(
         entry for entry in payload["evidence"]["recording"]["trials"] if entry["id"] == "trial-gap"
     )
@@ -205,7 +205,7 @@ def test_evidence_for_a_recording_completeness_does_not_call_present_is_ignored(
         if trial["id"] == "trial-absent-file":
             trial["recording"] = {"state": state}
             trial["recording"].pop("sha256", None)
-    after = recording(payload)
+    after = recording(payload, "1.0.0")
     assert after == before
     assert "trial-absent-file" not in {item.get("trial_id") for item in after["findings"]}
 
