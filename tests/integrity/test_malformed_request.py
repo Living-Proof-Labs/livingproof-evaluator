@@ -53,7 +53,7 @@ def test_a_present_trial_whose_evidence_says_incomplete_is_rejected() -> None:
     assert "trial-01" in message and "truncated" in message
 
 
-def test_the_default_version_is_1_1_0_so_the_default_call_rejects_it() -> None:
+def test_the_default_version_rejects_present_plus_incomplete_without_over_limit() -> None:
     with pytest.raises(integrity_rules.MalformedRequest):
         integrity_rules.recording(inconsistent(), "1.1.0")
     with pytest.raises(integrity_rules.MalformedRequest):
@@ -130,15 +130,25 @@ def test_the_rule_rejects_exactly_the_inconsistent_inputs() -> None:
 
 @pytest.mark.parametrize("bad_state", ["garbled", None])
 @pytest.mark.parametrize("recording_state", ["present", "missing", "truncated", "empty"])
+@pytest.mark.parametrize("version", ["1.1.0", "1.2.0"])
+@pytest.mark.parametrize("over_limit", [False, True])
 def test_an_unknown_mcap_state_is_rejected_and_names_the_actual_state(
-    recording_state: str, bad_state: str | None
+    recording_state: str,
+    bad_state: str | None,
+    version: str,
+    over_limit: bool,
 ) -> None:
     payload = clean()
+    if over_limit:
+        payload["evidence"]["recording"]["trials"][0]["over_limit"] = {
+            "limit": "chunk-bytes",
+            "value": 33_554_432,
+        }
     _set_recording_state(payload, 0, recording_state)
     payload["evidence"]["recording"]["trials"][0]["mcap"]["state"] = bad_state
     assert_invalid(RECORDING_SCHEMA["$defs"]["evidence"], payload["evidence"]["recording"])
     with pytest.raises(integrity_rules.MalformedRequest) as raised:
-        integrity_rules.recording(payload)
+        integrity_rules.recording(payload, version)
     message = str(raised.value)
     assert "trial-01" in message
     assert repr(bad_state) in message
@@ -153,15 +163,24 @@ def test_an_unknown_mcap_state_is_rejected_and_names_the_actual_state(
 
 
 @pytest.mark.parametrize("recording_state", ["present", "missing", "truncated", "empty"])
+@pytest.mark.parametrize("version", ["1.1.0", "1.2.0"])
+@pytest.mark.parametrize("over_limit", [False, True])
 def test_a_missing_mcap_state_raises_malformed_request_not_key_error(
     recording_state: str,
+    version: str,
+    over_limit: bool,
 ) -> None:
     payload = clean()
+    if over_limit:
+        payload["evidence"]["recording"]["trials"][0]["over_limit"] = {
+            "limit": "chunk-bytes",
+            "value": 33_554_432,
+        }
     _set_recording_state(payload, 0, recording_state)
     del payload["evidence"]["recording"]["trials"][0]["mcap"]["state"]
     assert_invalid(RECORDING_SCHEMA["$defs"]["evidence"], payload["evidence"]["recording"])
     with pytest.raises(integrity_rules.MalformedRequest) as raised:
-        integrity_rules.recording(payload)
+        integrity_rules.recording(payload, version)
     message = str(raised.value)
     assert "trial-01" in message
     assert "missing" in message
@@ -175,10 +194,19 @@ def test_a_missing_mcap_state_raises_malformed_request_not_key_error(
 
 
 @pytest.mark.parametrize("mcap_state", ["complete", "incomplete", None])
+@pytest.mark.parametrize("version", ["1.1.0", "1.2.0"])
+@pytest.mark.parametrize("over_limit", [False, True])
 def test_an_evidence_trial_not_in_trials_is_rejected_at_1_1_0_and_ignored_at_1_0_0(
     mcap_state: str | None,
+    version: str,
+    over_limit: bool,
 ) -> None:
     payload = clean()
+    if over_limit:
+        payload["evidence"]["recording"]["trials"][0]["over_limit"] = {
+            "limit": "chunk-bytes",
+            "value": 33_554_432,
+        }
     extra = copy.deepcopy(payload["evidence"]["recording"]["trials"][0])
     extra["id"] = "trial-unknown"
     if mcap_state is None:
@@ -189,7 +217,7 @@ def test_an_evidence_trial_not_in_trials_is_rejected_at_1_1_0_and_ignored_at_1_0
     if mcap_state is not None:
         assert_valid(RECORDING_SCHEMA["$defs"]["evidence"], payload["evidence"]["recording"])
     with pytest.raises(integrity_rules.MalformedRequest) as raised:
-        integrity_rules.recording(payload)
+        integrity_rules.recording(payload, version)
     message = str(raised.value)
     assert "trial-unknown" in message
     assert (mcap_state or "missing") in message

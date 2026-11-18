@@ -10,12 +10,13 @@ that the rules fix: applicable, percentage, findings as (category, trial_id) pai
 summary, and for termination its referrals.
 
 Five checks have a rule that changed in a later check version. ``pins`` is 1.1.0 only (its
-1.0.0 rule divided by five and had no ``not_checked``). ``termination``, ``recording``,
-``plan_conformance`` and ``completeness_applicable`` take ``version`` and **default to 1.1.0**,
-the current rule, so a caller that forgets it tests the current one; pass ``"1.0.0"`` for the
-old rule. 1.1.0 never allows ``simulation-broken``, reports ``not_checked`` (recording and
-plan-conformance), and leaves a file with no valid footer to completeness. Where a check reports
-``not_checked``, its subjects are outside the denominator of ``percentage``.
+1.0.0 rule divided by five and had no ``not_checked``). ``termination``, ``plan_conformance``
+and ``completeness_applicable`` take ``version`` and **default to 1.1.0**. ``recording``
+defaults to **1.2.0**, its current rule; pass ``"1.1.0"`` or ``"1.0.0"`` for an earlier one.
+1.1.0 never allows ``simulation-broken``, reports ``not_checked`` (recording and
+plan-conformance), and leaves a file with no valid footer to completeness. 1.2.0 adds
+``recording-over-limit`` for a present recording the reader refused at a decompression cap.
+Where a check reports ``not_checked``, its subjects are outside the denominator of ``percentage``.
 """
 
 from __future__ import annotations
@@ -38,6 +39,25 @@ def _finding(category: str, summary: str, trial_id: str | None = None) -> dict[s
     if trial_id is not None:
         finding["trial_id"] = trial_id
     return finding
+
+
+_OVER_LIMIT_UNITS = {
+    "chunk-bytes": "bytes",
+    "total-bytes": "bytes",
+    "records": None,
+    "chunks": None,
+}
+
+
+def _over_limit_summary(info: dict[str, Any]) -> str:
+    limit = info["limit"]
+    value = info["value"]
+    unit = _OVER_LIMIT_UNITS[limit]
+    measured = f"{value} {unit}" if unit else f"{value}"
+    return (
+        f"The recording expands past the reader's {limit} limit of {measured},"
+        " so it was not fully read."
+    )
 
 
 class MalformedRequest(ValueError):
@@ -283,20 +303,26 @@ def termination(
     return result
 
 
-def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any] | None:
+def recording(payload: dict[str, Any], version: str = "1.2.0") -> dict[str, Any] | None:
     """Each present recording is a usable MCAP file that matches media.json. Trials whose
     recording completeness does not report as present are not judged here.
 
-    1.1.0 (the default): a file with no valid footer is completeness's, as a ``truncated``
-    recording, so this check does not judge it and does not emit ``mcap-incomplete``. A present
-    trial whose evidence says ``incomplete``, an evidence trial not in ``trials``, or an unknown
-    or missing ``mcap.state`` is inconsistent or malformed and raises ``MalformedRequest``. Every
-    trial it did not judge is listed in ``not_checked``, also when it judged nothing. 1.0.0, the
-    old rule, judged such a file, emitted ``mcap-incomplete`` and had no ``not_checked``."""
+    1.2.0 (the default): a present recording the reader refused at a decompression cap is
+    ``recording-over-limit``. The evidence names the limit and its value; the trial is judged
+    and fails closed, and no other recording finding is emitted for it. A present trial whose
+    evidence says ``incomplete`` is still a malformed request unless ``over_limit`` is set.
+    1.1.0 leaves a file with no valid footer to completeness, as a ``truncated`` recording, so
+    this check does not judge it and does not emit ``mcap-incomplete``. It does not emit
+    ``recording-over-limit``. A present trial whose evidence says ``incomplete`` raises
+    ``MalformedRequest``. From 1.1.0, an evidence trial not in ``trials`` or an unknown
+    or missing ``mcap.state`` also raises ``MalformedRequest``. Every trial it did not judge
+    is listed in ``not_checked``, also when it judged nothing. 1.0.0, the old rule, judged such a file, emitted ``mcap-incomplete``
+    and had no ``not_checked``."""
     evidence = payload.get("evidence", {}).get("recording")
     if evidence is None:
         return None
     new = version != "1.0.0"
+    v12 = version not in ("1.0.0", "1.1.0")
     if not evidence["media_available"]:
         # The whole check is not applicable, so there is no trial to list.
         return {**_not_applicable(), "not_checked": []} if new else _not_applicable()
@@ -305,7 +331,7 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
     if new:
         # Fail closed on inconsistent or malformed recording evidence: an evidence entry for an
         # unknown trial, a missing or unknown mcap.state, or a present trial whose evidence says
-        # incomplete (which belongs to completeness as a truncated recording).
+        # incomplete (unless 1.2.0 over_limit explains why the reader stopped).
         for entry in evidence["trials"]:
             trial_id = entry["id"]
             mcap = entry.get("mcap")
@@ -330,6 +356,8 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
                     " which is not a known state."
                 )
             if trial_id in present and mcap_state == "incomplete":
+                if v12 and "over_limit" in entry:
+                    continue
                 raise MalformedRequest(
                     f"trial {trial_id}: recording.state is present but evidence.recording"
                     " says the file is incomplete. A file with no valid footer is truncated:"
@@ -345,7 +373,15 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
         judged += 1
         trial_findings: list[dict[str, Any]] = []
         mcap = entry["mcap"]
-        if mcap["state"] != "complete":
+        if v12 and "over_limit" in entry:
+            trial_findings.append(
+                _finding(
+                    "recording-over-limit",
+                    _over_limit_summary(entry["over_limit"]),
+                    trial_id,
+                )
+            )
+        elif mcap["state"] != "complete":
             trial_findings.append(
                 _finding(
                     "mcap-incomplete",
@@ -353,53 +389,54 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
                     trial_id,
                 )
             )
-        channels = {channel["topic"]: channel for channel in mcap["channels"]}
-        for topic in evidence["required_channels"]:
-            channel = channels.get(topic)
-            if channel is None or channel["message_count"] == 0:
+        if not (v12 and "over_limit" in entry):
+            channels = {channel["topic"]: channel for channel in mcap["channels"]}
+            for topic in evidence["required_channels"]:
+                channel = channels.get(topic)
+                if channel is None or channel["message_count"] == 0:
+                    trial_findings.append(
+                        _finding(
+                            "missing-channel",
+                            f"The required channel {topic} is absent or has no messages.",
+                            trial_id,
+                        )
+                    )
+            for topic, channel in channels.items():
+                if channel["backward_steps"] > 0:
+                    trial_findings.append(
+                        _finding(
+                            "timestamps-backwards",
+                            f"Channel {topic} has {channel['backward_steps']} timestamps"
+                            " that go backwards.",
+                            trial_id,
+                        )
+                    )
+                if channel["max_gap_seconds"] > evidence["max_gap_seconds"]:
+                    trial_findings.append(
+                        _finding(
+                            "message-gap-exceeded",
+                            f"Channel {topic} has a gap of {channel['max_gap_seconds']} s,"
+                            f" over the limit of {evidence['max_gap_seconds']} s.",
+                            trial_id,
+                        )
+                    )
+            media = entry["media"]
+            if mcap["sha256"] != media["mcap_sha256"] or mcap["bytes"] != media["mcap_bytes"]:
                 trial_findings.append(
                     _finding(
-                        "missing-channel",
-                        f"The required channel {topic} is absent or has no messages.",
+                        "media-file-mismatch",
+                        "The recording's size or sha256 differs from media.json.",
                         trial_id,
                     )
                 )
-        for topic, channel in channels.items():
-            if channel["backward_steps"] > 0:
+            if media["observation_sha256"] != entry["evidence_observation_sha256"]:
                 trial_findings.append(
                     _finding(
-                        "timestamps-backwards",
-                        f"Channel {topic} has {channel['backward_steps']} timestamps"
-                        " that go backwards.",
+                        "observation-link-mismatch",
+                        "The observation_sha256 in media.json differs from the run evidence.",
                         trial_id,
                     )
                 )
-            if channel["max_gap_seconds"] > evidence["max_gap_seconds"]:
-                trial_findings.append(
-                    _finding(
-                        "message-gap-exceeded",
-                        f"Channel {topic} has a gap of {channel['max_gap_seconds']} s,"
-                        f" over the limit of {evidence['max_gap_seconds']} s.",
-                        trial_id,
-                    )
-                )
-        media = entry["media"]
-        if mcap["sha256"] != media["mcap_sha256"] or mcap["bytes"] != media["mcap_bytes"]:
-            trial_findings.append(
-                _finding(
-                    "media-file-mismatch",
-                    "The recording's size or sha256 differs from media.json.",
-                    trial_id,
-                )
-            )
-        if media["observation_sha256"] != entry["evidence_observation_sha256"]:
-            trial_findings.append(
-                _finding(
-                    "observation-link-mismatch",
-                    "The observation_sha256 in media.json differs from the run evidence.",
-                    trial_id,
-                )
-            )
         if trial_findings:
             failing.add(trial_id)
             findings.extend(trial_findings)

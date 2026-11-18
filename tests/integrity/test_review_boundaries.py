@@ -49,6 +49,7 @@ CATEGORIES = {
         "message-gap-exceeded",
         "media-file-mismatch",
         "observation-link-mismatch",
+        "recording-over-limit",
     },
 }
 # plan-conformance findings are about the run as a whole. The other two name a trial.
