@@ -1,0 +1,176 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "57f63acf2bb46986272af073ccac9b8ddce52c2d4e7773b4bb1bef2f13ca956a"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "d3217ce61bf5273ef507445a8fa087dfb40011505e8eb6aaba548d5ff61d5ea9"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "f3e3aef870ec20c62bad89738ecaeb5738f139c18217c08c3602a07f817202ad"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-18T11:00:00Z"
+  },
+  "integrity": {
+    "manifest": {
+      "id": "example-recording-over-limit",
+      "deterministic": true,
+      "environment": "simulation",
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      },
+      "planned_trials": [
+        {
+          "id": "trial-01"
+        },
+        {
+          "id": "trial-02"
+        }
+      ],
+      "robot_determinism": "deterministic"
+    },
+    "lock": {
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      }
+    },
+    "trials": [
+      {
+        "id": "trial-01",
+        "input_sha256": "11fc186251e2d208abe1cd65f62793124a8846d9ebc82bcb50409032cb21d079",
+        "recording": {
+          "state": "present",
+          "sha256": "ce81546b5963d3aa92f4a087513a5275c9fa0a5283e307fb85efe0acb70804ec"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-02",
+        "input_sha256": "51d210b7ac7e1a9b84c3c65beb3ff6e07028d62f6bde79638e9643ef824c0c8d",
+        "recording": {
+          "state": "present",
+          "sha256": "d5dc5bc06ac3f3e6b37cfb393a5da94da023fbd6ecd014db90e4fc100bc3918a"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      }
+    ],
+    "evidence": {
+      "recording": {
+        "media_available": true,
+        "required_channels": [
+          "/base_pose",
+          "/joint_states"
+        ],
+        "max_gap_seconds": 0.1,
+        "trials": [
+          {
+            "id": "trial-01",
+            "mcap": {
+              "state": "complete",
+              "bytes": 48008,
+              "sha256": "f47d06c236a1efae3b09726055f4abfb7f8a188d94dfaec63561195a47ddceaa",
+              "channels": [
+                {
+                  "topic": "/base_pose",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                },
+                {
+                  "topic": "/joint_states",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                }
+              ]
+            },
+            "media": {
+              "mcap_bytes": 48008,
+              "mcap_sha256": "f47d06c236a1efae3b09726055f4abfb7f8a188d94dfaec63561195a47ddceaa",
+              "observation_sha256": "275c69933ae8d738faf373ffbf627d03d8d97693e72789ef451c61878e2b6b38"
+            },
+            "evidence_observation_sha256": "275c69933ae8d738faf373ffbf627d03d8d97693e72789ef451c61878e2b6b38"
+          },
+          {
+            "id": "trial-02",
+            "mcap": {
+              "state": "complete",
+              "bytes": 48008,
+              "sha256": "2ad309ef7d1c569f7598c1f2cc31ba9b3d0eadaff3b92f47eba7f7d336b8cf3c",
+              "channels": []
+            },
+            "media": {
+              "mcap_bytes": 48008,
+              "mcap_sha256": "2ad309ef7d1c569f7598c1f2cc31ba9b3d0eadaff3b92f47eba7f7d336b8cf3c",
+              "observation_sha256": "433611d4726cb8b398fee56281ec907545cb9f77f54a55db73f34ec4e1562753"
+            },
+            "evidence_observation_sha256": "433611d4726cb8b398fee56281ec907545cb9f77f54a55db73f34ec4e1562753",
+            "over_limit": {
+              "limit": "chunk-bytes",
+              "value": 33554432
+            }
+          }
+        ]
+      }
+    }
+  }
+}
