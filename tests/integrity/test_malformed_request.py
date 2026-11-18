@@ -44,7 +44,7 @@ def test_a_present_trial_whose_evidence_says_incomplete_is_rejected() -> None:
     assert "trial-01" in message and "truncated" in message
 
 
-def test_the_default_version_is_1_1_0_so_the_default_call_rejects_it() -> None:
+def test_the_default_version_rejects_present_plus_incomplete_without_over_limit() -> None:
     with pytest.raises(integrity_rules.MalformedRequest):
         integrity_rules.recording(inconsistent(), "1.1.0")
     with pytest.raises(integrity_rules.MalformedRequest):

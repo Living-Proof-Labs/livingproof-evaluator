@@ -341,6 +341,7 @@ def test_the_published_example_is_recording_1_2_0_over_limit() -> None:
     assert request["integrity"]["trials"][1]["recording"]["state"] == "present"
     evidence = request["integrity"]["evidence"]["recording"]["trials"][1]
     assert evidence["over_limit"] == {"limit": "chunk-bytes", "value": 33_554_432}
+    assert evidence["mcap"]["state"] == "incomplete"
     matches_rules(check, recording(request["integrity"], "1.2.0"))
     assert_valid(EVIDENCE_SCHEMA, request["integrity"]["evidence"]["recording"])
     assert_valid(SCHEMA, check)
