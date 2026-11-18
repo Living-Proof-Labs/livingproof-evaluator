@@ -226,3 +226,37 @@ def test_the_contract_fixes_no_gap_limit_in_the_limits_field() -> None:
     limits = integrity["$defs"]["check"]["properties"]["limits"]
     assert "const" not in limits["properties"]["max_gap_seconds"]
     assert "enum" not in limits["properties"]["max_gap_seconds"]
+
+
+# not_checked (livingproof-evaluator#34): a recording that was not judged has a place in the result.
+
+
+def test_a_recording_that_is_not_present_is_listed_as_not_checked() -> None:
+    request, result = load("findings")
+    check = reported(result, "recording")
+    assert check["not_checked"] == [{"trial_id": "trial-absent-file", "reason": "not-present"}]
+    # The reason is completeness's to report, so it is not a finding here and is not counted.
+    assert "trial-absent-file" not in {item["trial_id"] for item in check["findings"]}
+    assert check["percentage"] == 100 * 1 / 7
+    matches_rules(check, recording(request["integrity"]))
+
+
+def test_a_present_recording_the_evidence_has_no_entry_for_was_never_read() -> None:
+    request, _ = load("clean")
+    payload = json.loads(json.dumps(request["integrity"]))
+    removed = payload["evidence"]["recording"]["trials"].pop()
+    expected = recording(payload)
+    assert expected["not_checked"] == [{"trial_id": removed["id"], "reason": "not-recorded"}]
+    assert expected["percentage"] == 100 and expected["applicable"] is True
+
+
+def test_every_recording_judged_means_nothing_is_not_checked() -> None:
+    request, result = load("clean")
+    assert recording(request["integrity"])["not_checked"] == []
+    assert reported(result, "recording").get("not_checked", []) == []
+
+
+def test_no_media_lists_nothing_because_the_whole_check_is_not_applicable() -> None:
+    _, result = load("no-media")
+    check = reported(result, "recording")
+    assert check["applicable"] is False and "not_checked" not in check

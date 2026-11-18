@@ -159,3 +159,39 @@ def test_the_evidence_schema_rejects_a_negative_count_and_a_verdict() -> None:
     with_extra = json.loads(json.dumps(evidence))
     with_extra["verdict"] = "PASS"
     assert_invalid(SCHEMA["$defs"]["evidence"], with_extra)
+
+
+# not_checked (livingproof-evaluator#34): the comparisons with the lock that were not made.
+
+
+def test_without_a_lock_block_the_lock_comparisons_are_listed_as_not_checked() -> None:
+    request, result = load("no-lock")
+    check = reported(result, "plan-conformance")
+    assert "lock" not in request["integrity"]["evidence"]["plan-conformance"]
+    assert check["not_checked"] == [
+        {"subject": "lock-trial-count", "reason": "not-declared"},
+        {"subject": "lock-command-speed", "reason": "not-declared"},
+    ]
+    # They are not subjects, so a run with nothing else wrong still reads 100.
+    assert check["percentage"] == 100 and check["success"] is True
+    matches_rules(check, plan_conformance(request["integrity"]))
+
+
+def test_a_lock_with_no_command_speed_leaves_only_that_comparison_out() -> None:
+    request, _ = load("conformant")
+    payload = json.loads(json.dumps(request["integrity"]))
+    del payload["evidence"]["plan-conformance"]["lock"]["plan"]["command_speed"]
+    expected = plan_conformance(payload)
+    assert expected["not_checked"] == [{"subject": "lock-command-speed", "reason": "not-declared"}]
+    assert expected["percentage"] == 100
+
+
+def test_the_conformant_example_checked_everything_so_lists_nothing() -> None:
+    request, result = load("conformant")
+    assert plan_conformance(request["integrity"])["not_checked"] == []
+    assert reported(result, "plan-conformance").get("not_checked", []) == []
+
+
+def test_unmet_preconditions_list_nothing_as_not_checked() -> None:
+    _, result = load("preconditions-unmet")
+    assert "not_checked" not in reported(result, "plan-conformance")

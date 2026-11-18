@@ -250,3 +250,53 @@ def test_the_evidence_schema_rejects_an_unlisted_allowed_reason_and_a_verdict() 
     with_verdict["trials"][0]["verdict"] = "PASS"
     assert_invalid(SCHEMA["$defs"]["evidence"], with_verdict)
     assert_valid(SCHEMA["$defs"]["evidence"], evidence)
+
+
+# termination 1.1.0 (livingproof-evaluator#34, Vera on evaluator-run#15): never simulation-broken.
+
+
+def test_a_plan_cannot_allow_a_broken_simulation() -> None:
+    """1.0.0 let a plan list simulation-broken and so tolerate it. From 1.1.0 it is never
+    allowed, so it always surfaces as a Run Integrity failure."""
+    example = ROOT / "examples" / "integrity" / "termination" / "simulation-broken"
+    request = load_json(example / "request.json")
+    result = load_json(example / "result.json")
+    evidence = request["integrity"]["evidence"]["termination"]
+    assert "simulation-broken" in evidence["allowed_stop_reasons"]
+    check = reported(result, "termination")
+    assert check["version"] == "1.1.0"
+    assert finding_keys(check) == [("disallowed-stop-reason", "trial-broken")]
+    assert check["findings"][0]["summary"] == "The stop reason simulation-broken is never allowed."
+    assert check["percentage"] == 50
+    assert result["integrity"]["run"]["conclusion"] == "INCONCLUSIVE"
+    matches_rules(check, termination(request["integrity"], VOCAB_ENUM, "1.1.0"))
+
+
+def test_1_0_0_still_allows_it_when_the_plan_lists_it() -> None:
+    example = ROOT / "examples" / "integrity" / "termination" / "simulation-broken"
+    payload = load_json(example / "request.json")["integrity"]
+    assert termination(payload, VOCAB_ENUM, "1.0.0")["findings"] == []
+    assert termination(payload, VOCAB_ENUM)["findings"] == []  # 1.0.0 is the default here
+
+
+def test_the_other_reasons_are_still_the_plans_to_allow() -> None:
+    payload = load_json(EXAMPLES / "clean" / "request.json")["integrity"]
+    assert termination(payload, VOCAB_ENUM, "1.1.0")["findings"] == []
+    payload["evidence"]["termination"]["allowed_stop_reasons"] = ["mission-done"]
+    categories = {
+        item["category"] for item in termination(payload, VOCAB_ENUM, "1.1.0")["findings"]
+    }
+    assert categories == {"disallowed-stop-reason"}
+
+
+def test_a_list_that_names_simulation_broken_stays_a_valid_request() -> None:
+    from support import request_schema
+
+    example = ROOT / "examples" / "integrity" / "termination" / "simulation-broken"
+    assert_valid(request_schema(), load_json(example / "request.json"))
+
+
+def test_the_existing_termination_examples_are_still_1_0_0() -> None:
+    for name in ("clean", "findings", "timeout-single-report"):
+        result = load_json(EXAMPLES / name / "result.json")
+        assert reported(result, "termination")["version"] == "1.0.0"

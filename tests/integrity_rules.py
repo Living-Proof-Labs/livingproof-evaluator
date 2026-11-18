@@ -8,6 +8,12 @@ implementation for producers to import. Each returns None when the request carri
 evidence for the check. Otherwise it returns a dict with the fields of the check object
 that the rules fix: applicable, percentage, findings as (category, trial_id) pairs with a
 summary, and for termination its referrals.
+
+Three checks have a rule that changed in a later check version, and the functions say which
+version they implement: ``pins`` is 1.1.0 (its 1.0.0 rule divided by five and had no
+``not_checked``), ``termination`` takes ``version`` (1.1.0 never allows ``simulation-broken``)
+and ``completeness_applicable`` is 1.1.0 (1.0.0 was always applicable). Where a check reports
+``not_checked``, its subjects are outside the denominator of ``percentage``.
 """
 
 from __future__ import annotations
@@ -120,20 +126,93 @@ def plan_conformance(payload: dict[str, Any]) -> dict[str, Any] | None:
                     f"A trials.results entry has index {entry['index']}, outside 1 to {planned}.",
                 )
             )
+    # The comparisons with the lock that were not made are not in the subjects either.
+    not_checked: list[dict[str, Any]] = []
+    if lock_plan is None:
+        not_checked.append({"subject": "lock-trial-count", "reason": "not-declared"})
+    if lock_plan is None or plan_speed is None or "command_speed" not in lock_plan:
+        not_checked.append({"subject": "lock-command-speed", "reason": "not-declared"})
     return {
         "applicable": True,
         "percentage": _share(subjects - failing, subjects),
         "findings": findings,
+        "not_checked": not_checked,
     }
 
 
-def termination(payload: dict[str, Any], vocabulary: set[str]) -> dict[str, Any] | None:
+PIN_SUBJECTS = ("specs", "runner", "verifier", "world", "configuration")
+
+
+def _pin(pins: dict[str, Any], subject: str) -> str | None:
+    value = pins.get(subject)
+    return value.get("sha256") if isinstance(value, dict) else None
+
+
+def pins(payload: dict[str, Any]) -> dict[str, Any]:
+    """pins 1.1.0. A subject is checked when the manifest and the lock both carry its sha256.
+    One the lock does not declare is ``not-declared``, and one the manifest does not record is
+    ``not-recorded``. The percentage is 100 times the matching checked subjects divided by the
+    checked subjects, so a subject that was not checked is not in it. With no checked subject
+    the check is not applicable."""
+    manifest = payload["manifest"]["pins"]
+    lock = payload["lock"]["pins"]
+    findings: list[dict[str, Any]] = []
+    not_checked: list[dict[str, Any]] = []
+    checked = 0
+    for subject in PIN_SUBJECTS:
+        declared = _pin(lock, subject)
+        recorded = _pin(manifest, subject)
+        if declared is None or recorded is None:
+            reason = "not-declared" if declared is None else "not-recorded"
+            not_checked.append({"subject": subject, "reason": reason})
+            continue
+        checked += 1
+        if declared != recorded:
+            findings.append(
+                {
+                    "category": "hash-mismatch",
+                    "classification": "test_system",
+                    "summary": f"The {subject} pin hash differs between the run manifest"
+                    " and the verification lock.",
+                    "subject": subject,
+                }
+            )
+    if not checked:
+        return {"applicable": False, "findings": [], "not_checked": not_checked}
+    return {
+        "applicable": True,
+        "percentage": _share(checked - len(findings), checked),
+        "findings": findings,
+        "not_checked": not_checked,
+    }
+
+
+def completeness_applicable(payload: dict[str, Any], version: str = "1.1.0") -> bool:
+    """Whether completeness applies. 1.0.0 always did. From 1.1.0 it follows
+    plan-conformance: when ``evidence['plan-conformance'].preconditions.met`` is false the run
+    ran no trials, and completeness is not applicable instead of reporting every planned
+    trial as missing."""
+    if version == "1.0.0":
+        return True
+    preconditions = payload.get("evidence", {}).get("plan-conformance", {}).get("preconditions", {})
+    return preconditions.get("met", True)
+
+
+def termination(
+    payload: dict[str, Any], vocabulary: set[str], version: str = "1.0.0"
+) -> dict[str, Any] | None:
     """Every trial that ended on its own records a stop reason that the plan allows.
-    A trial whose termination is timeout or crash is referred to completeness."""
+    A trial whose termination is timeout or crash is referred to completeness.
+
+    From 1.1.0 ``simulation-broken`` is never allowed, whatever the plan lists, so it is always
+    a ``disallowed-stop-reason`` finding. 1.0.0 allowed it when the plan listed it."""
     evidence = payload.get("evidence", {}).get("termination")
     if evidence is None:
         return None
     allowed = set(evidence["allowed_stop_reasons"])
+    never = version != "1.0.0"
+    if never:
+        allowed.discard("simulation-broken")
     recorded = {entry["id"]: entry for entry in evidence["trials"]}
     findings: list[dict[str, Any]] = []
     referrals: list[dict[str, str]] = []
@@ -169,13 +248,12 @@ def termination(payload: dict[str, Any], vocabulary: set[str]) -> dict[str, Any]
             )
         elif reason not in allowed:
             failing.add(trial_id)
-            findings.append(
-                _finding(
-                    "disallowed-stop-reason",
-                    f"The stop reason {reason} is not one the plan allows.",
-                    trial_id,
-                )
+            text = (
+                f"The stop reason {reason} is never allowed."
+                if never and reason == "simulation-broken"
+                else f"The stop reason {reason} is not one the plan allows."
             )
+            findings.append(_finding("disallowed-stop-reason", text, trial_id))
         manifest_reason = entry.get("manifest_stop_reason")
         if reason is not None and manifest_reason not in (None, reason):
             failing.add(trial_id)
@@ -277,11 +355,22 @@ def recording(payload: dict[str, Any]) -> dict[str, Any] | None:
             findings.extend(trial_findings)
     if not judged:
         return _not_applicable()
+    # A trial that was not judged is listed, so a reader can tell it from a clean one: a recording
+    # that is not present is completeness's finding (not-present), and a present one that the
+    # evidence has no entry for was never read (not-recorded).
+    in_evidence = {entry["id"] for entry in evidence["trials"]}
+    not_checked: list[dict[str, Any]] = []
+    for trial in payload["trials"]:
+        if trial["recording"]["state"] != "present":
+            not_checked.append({"trial_id": trial["id"], "reason": "not-present"})
+        elif trial["id"] not in in_evidence:
+            not_checked.append({"trial_id": trial["id"], "reason": "not-recorded"})
     return {
         "applicable": True,
         "percentage": _share(judged - len(failing), judged),
         "limits": {"max_gap_seconds": evidence["max_gap_seconds"]},
         "findings": findings,
+        "not_checked": not_checked,
     }
 
 
@@ -302,6 +391,8 @@ def matches_rules(check: dict[str, Any], expected: dict[str, Any]) -> None:
     if "referrals" in expected:
         assert check["referrals"] == expected["referrals"]
     assert check.get("limits") == expected.get("limits")
+    if "not_checked" in expected:
+        assert check.get("not_checked", []) == expected["not_checked"]
     assert check["success"] is (not expected["findings"])
 
 
