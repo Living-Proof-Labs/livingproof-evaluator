@@ -1,0 +1,115 @@
+{
+  "format": "livingproof-evaluator-result/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "24def1f82b12862ed3986f9cc43a90c5719da486f663dcd2eabb22ab39603016"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "d89179f3e323d2c231b7557efa362cff46263d297b4edc62364286f05dd38506"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "ca5ccb0ac64dbacfdcb34bc6034f5a672924f58d981dfa8d1d8aa0bfbc4dc926"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-11-18T07:00:01Z",
+    "completed_at": "2026-11-18T07:00:02Z"
+  },
+  "integrity": {
+    "run": {
+      "id": "example-termination-findings",
+      "test_system_status": "ERROR",
+      "conclusion": "INCONCLUSIVE",
+      "success": false,
+      "percentage": 20.0
+    },
+    "trials": [
+      {
+        "id": "trial-clean",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-missing",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-unknown",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-disallowed",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-mismatch",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      }
+    ],
+    "checks": [
+      {
+        "id": "termination",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": false,
+        "percentage": 20.0,
+        "findings": [
+          {
+            "category": "missing-stop-reason",
+            "classification": "test_system",
+            "summary": "The trial records no stop reason.",
+            "trial_id": "trial-missing"
+          },
+          {
+            "category": "unknown-stop-reason",
+            "classification": "test_system",
+            "summary": "The stop reason non_finite_state is not in the stop reason vocabulary.",
+            "trial_id": "trial-unknown"
+          },
+          {
+            "category": "disallowed-stop-reason",
+            "classification": "test_system",
+            "summary": "The stop reason simulation-broken is not one the plan allows.",
+            "trial_id": "trial-disallowed"
+          },
+          {
+            "category": "stop-reason-mismatch",
+            "classification": "test_system",
+            "summary": "The trial records mission-done and the manifest records time-limit.",
+            "trial_id": "trial-mismatch"
+          }
+        ],
+        "referrals": []
+      }
+    ]
+  }
+}

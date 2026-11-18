@@ -1,0 +1,148 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "5b749566ec9de199b331743c7a1c1c0c2003ee7e690dfe2223db1b7d3b540682"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "28d116fac87891c029a7417f99343c312b8a6363f34146743f9d34a0771f48cf"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "bf59523003e13e2e82b2a67779caf10375553185a87294a1a18d9e9462e9e95a"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-18T07:00:00Z"
+  },
+  "integrity": {
+    "manifest": {
+      "id": "example-termination-single-report",
+      "deterministic": true,
+      "environment": "simulation",
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      },
+      "planned_trials": [
+        {
+          "id": "trial-ended"
+        },
+        {
+          "id": "trial-timeout"
+        },
+        {
+          "id": "trial-crash"
+        }
+      ],
+      "robot_determinism": "deterministic"
+    },
+    "lock": {
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      }
+    },
+    "trials": [
+      {
+        "id": "trial-ended",
+        "input_sha256": "e350e33ceccfa4b13c495d0557fa8ba213e90b81f650036809b5a515f2c1be13",
+        "recording": {
+          "state": "present",
+          "sha256": "acef016878860b4a4f7c8608a70f1407c23396b525e1aded8e9118960bfe40fb"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-timeout",
+        "input_sha256": "d92592810f373c306fb4808fda9c1a9829cc0f77ac4de3cef5bcf48a2745cb03",
+        "recording": {
+          "state": "present",
+          "sha256": "bb08f6a20cc510e3beb1f293c5f197f64005fdad9172a88696f6f234e5573ac8"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "timeout"
+      },
+      {
+        "id": "trial-crash",
+        "input_sha256": "f53027a6f5f1d67f067e5b2992cb0bce8d0d27e1ff8778f0d95bc9a801528747",
+        "recording": {
+          "state": "present",
+          "sha256": "207ad4e3a849be8a87c82a5077d38fe0185e6df745ea602c86a18f066242d719"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "crash"
+      }
+    ],
+    "evidence": {
+      "termination": {
+        "allowed_stop_reasons": [
+          "time-limit",
+          "mission-done",
+          "left-world",
+          "adapter-or-scenario-done"
+        ],
+        "trials": [
+          {
+            "id": "trial-ended",
+            "stop_reason": "mission-done",
+            "manifest_stop_reason": "mission-done"
+          }
+        ]
+      }
+    }
+  }
+}

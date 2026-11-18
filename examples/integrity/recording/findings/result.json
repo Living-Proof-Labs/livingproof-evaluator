@@ -1,0 +1,147 @@
+{
+  "format": "livingproof-evaluator-result/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "bd41b85575259ac8f97421c0e43c26102e54a61e9d20830d25a93946f38abe0f"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "cca24342230948e8ead9b153ce2dfefb3e30d00c92f85683bf9f1a52b5473a6c"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "df85d379d7d271a15e8da919b6453af7bf227ff2bef0a2c4dbe6925e1d223900"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-11-18T07:00:01Z",
+    "completed_at": "2026-11-18T07:00:02Z"
+  },
+  "integrity": {
+    "run": {
+      "id": "example-recording-findings",
+      "test_system_status": "ERROR",
+      "conclusion": "INCONCLUSIVE",
+      "success": false,
+      "percentage": 14.285714285714286
+    },
+    "trials": [
+      {
+        "id": "trial-usable",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-incomplete",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-channel",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-backwards",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-gap",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-file-mismatch",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-link",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-absent-file",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      }
+    ],
+    "checks": [
+      {
+        "id": "recording",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": false,
+        "percentage": 14.285714285714286,
+        "limits": {
+          "max_gap_seconds": 0.1
+        },
+        "findings": [
+          {
+            "category": "mcap-incomplete",
+            "classification": "test_system",
+            "summary": "The recording does not open or has no valid footer and summary.",
+            "trial_id": "trial-incomplete"
+          },
+          {
+            "category": "missing-channel",
+            "classification": "test_system",
+            "summary": "The required channel /joint_states is absent or has no messages.",
+            "trial_id": "trial-channel"
+          },
+          {
+            "category": "timestamps-backwards",
+            "classification": "test_system",
+            "summary": "Channel /base_pose has 3 timestamps that go backwards.",
+            "trial_id": "trial-backwards"
+          },
+          {
+            "category": "message-gap-exceeded",
+            "classification": "test_system",
+            "summary": "Channel /joint_states has a gap of 0.5 s, over the limit of 0.1 s.",
+            "trial_id": "trial-gap"
+          },
+          {
+            "category": "media-file-mismatch",
+            "classification": "test_system",
+            "summary": "The recording's size or sha256 differs from media.json.",
+            "trial_id": "trial-file-mismatch"
+          },
+          {
+            "category": "observation-link-mismatch",
+            "classification": "test_system",
+            "summary": "The observation_sha256 in media.json differs from the run evidence.",
+            "trial_id": "trial-link"
+          }
+        ]
+      }
+    ]
+  }
+}

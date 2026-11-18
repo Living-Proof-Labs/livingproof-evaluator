@@ -30,6 +30,36 @@
       "schema": "schema/integrity/checks/ci-publisher.schema.json",
       "examples": ["examples/integrity/ci-publisher"],
       "recorded_run": "https://github.com/Living-Proof-Labs/livingproof-capability-report/actions/runs/43139248932"
+    },
+    {
+      "id": "plan-conformance",
+      "version": "1.0.0",
+      "schema": "schema/integrity/checks/plan-conformance.schema.json",
+      "examples": [
+        "examples/integrity/plan-conformance/conformant",
+        "examples/integrity/plan-conformance/findings",
+        "examples/integrity/plan-conformance/preconditions-unmet"
+      ]
+    },
+    {
+      "id": "termination",
+      "version": "1.0.0",
+      "schema": "schema/integrity/checks/termination.schema.json",
+      "examples": [
+        "examples/integrity/termination/clean",
+        "examples/integrity/termination/findings",
+        "examples/integrity/termination/timeout-single-report"
+      ]
+    },
+    {
+      "id": "recording",
+      "version": "1.0.0",
+      "schema": "schema/integrity/checks/recording.schema.json",
+      "examples": [
+        "examples/integrity/recording/clean",
+        "examples/integrity/recording/findings",
+        "examples/integrity/recording/no-media"
+      ]
     }
   ]
 }

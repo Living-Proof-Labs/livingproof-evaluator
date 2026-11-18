@@ -1,0 +1,73 @@
+{
+  "format": "livingproof-evaluator-result/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "57ba04098fcc90cf6c56967303de9e668d764c6a169af1970745306715a3f83e"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "d3217ce61bf5273ef507445a8fa087dfb40011505e8eb6aaba548d5ff61d5ea9"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "e7e03c57e27af927002c0dc39a4374ba02ecac1143a6b995b7f4ece03575fd83"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-11-18T07:00:01Z",
+    "completed_at": "2026-11-18T07:00:02Z"
+  },
+  "integrity": {
+    "run": {
+      "id": "example-recording",
+      "test_system_status": "COMPLETED",
+      "success": true,
+      "percentage": 100.0
+    },
+    "trials": [
+      {
+        "id": "trial-01",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-02",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      }
+    ],
+    "checks": [
+      {
+        "id": "recording",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": true,
+        "percentage": 100.0,
+        "limits": {
+          "max_gap_seconds": 0.1
+        },
+        "findings": []
+      }
+    ]
+  }
+}

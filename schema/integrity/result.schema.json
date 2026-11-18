@@ -30,6 +30,15 @@
           },
           {
             "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/ci-publisher.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/plan-conformance.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/termination.schema.json"
+          },
+          {
+            "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/recording.schema.json"
           }
         ]
       }
@@ -173,6 +182,22 @@
         "check_run": {"type": "string", "minLength": 1}
       }
     },
+    "referral": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": ["trial_id", "check", "category"],
+      "properties": {
+        "trial_id": {"type": "string", "minLength": 1},
+        "check": {
+          "const": "completeness",
+          "description": "The check that reports the ending."
+        },
+        "category": {
+          "enum": ["ended-by-timeout", "ended-by-crash"],
+          "description": "The completeness category that reports the ending."
+        }
+      }
+    },
     "check": {
       "type": "object",
       "unevaluatedProperties": false,
@@ -180,7 +205,15 @@
       "properties": {
         "id": {
           "description": "Must be a check id in schema/integrity/checks/registry.json. An unknown id is rejected here so the envelope does not depend on a later dispatch step to refuse it.",
-          "enum": ["completeness", "pins", "same-input-agreement", "ci-publisher"]
+          "enum": [
+            "completeness",
+            "pins",
+            "same-input-agreement",
+            "ci-publisher",
+            "plan-conformance",
+            "termination",
+            "recording"
+          ]
         },
         "version": {
           "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/semver"
@@ -200,12 +233,49 @@
           "type": "array",
           "items": {"$ref": "#/$defs/finding"}
         },
+        "referrals": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/referral"},
+          "description": "Only termination reports referrals. A referral names a trial whose ending completeness reports, so that ending is reported once and termination raises no finding of its own for it. A referral is not a finding: it does not change success or percentage."
+        },
+        "limits": {
+          "type": "object",
+          "unevaluatedProperties": false,
+          "required": ["max_gap_seconds"],
+          "properties": {
+            "max_gap_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "The longest allowed gap between consecutive messages on a channel, as declared in evidence.recording.max_gap_seconds."
+            }
+          },
+          "description": "Only recording reports limits, and only when it is applicable. It states the limit the check judged against. The limit is declared in the evidence and is not fixed by the contract, so the result says which one was used."
+        },
         "verdict": false,
         "grade": false,
         "pass": false,
         "fail": false
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "id": {"const": "recording"},
+              "applicable": {"const": true}
+            },
+            "required": ["id", "applicable"]
+          },
+          "then": {"required": ["limits"]},
+          "else": {"properties": {"limits": false}}
+        },
+        {
+          "if": {
+            "properties": {"id": {"const": "termination"}},
+            "required": ["id"]
+          },
+          "then": {"required": ["referrals"]},
+          "else": {"properties": {"referrals": false}}
+        },
         {
           "if": {
             "properties": {"applicable": {"const": true}},

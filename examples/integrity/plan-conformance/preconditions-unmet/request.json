@@ -1,0 +1,108 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "58fced962d00744ecfb017d8cdfbf474737734efd685daa40b242cdc6692d074"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "e52b085821f8fe13ae177df0a687d0b96c999ddc2db0050c82d29902014e9e7b"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-18T07:00:00Z"
+  },
+  "integrity": {
+    "manifest": {
+      "id": "example-plan-conformance-preconditions",
+      "deterministic": true,
+      "environment": "simulation",
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      },
+      "planned_trials": [
+        {
+          "id": "trial-01"
+        },
+        {
+          "id": "trial-02"
+        },
+        {
+          "id": "trial-03"
+        }
+      ],
+      "robot_determinism": "deterministic"
+    },
+    "lock": {
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      }
+    },
+    "trials": [],
+    "evidence": {
+      "plan-conformance": {
+        "preconditions": {
+          "met": false
+        },
+        "plan": {
+          "trial_count": 3,
+          "command_speed": 1.0
+        },
+        "trials": {
+          "count": 0,
+          "results": []
+        }
+      }
+    }
+  }
+}

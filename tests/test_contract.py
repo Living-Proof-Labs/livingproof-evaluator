@@ -56,6 +56,16 @@ def test_check_registry_matches_its_schema() -> None:
     assert len(ids) == len(set(ids))
 
 
+def test_the_result_schema_lists_exactly_the_registered_checks() -> None:
+    result = load_json(SCHEMA_ROOT / "integrity" / "result.schema.json")
+    registered = [entry["id"] for entry in check_registry()]
+    assert result["$defs"]["check"]["properties"]["id"]["enum"] == registered
+    refs = [
+        item["$ref"].rsplit("/", 1)[1] for item in result["properties"]["checks"]["items"]["oneOf"]
+    ]
+    assert refs == [f"{check_id}.schema.json" for check_id in registered]
+
+
 def test_check_schemas_do_not_reference_each_other() -> None:
     paths = sorted((SCHEMA_ROOT / "integrity" / "checks").glob("*.schema.json"))
     check_paths = [path for path in paths if path.name != "registry.schema.json"]

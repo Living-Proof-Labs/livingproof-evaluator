@@ -1,0 +1,110 @@
+{
+  "format": "livingproof-evaluator-result/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "5b749566ec9de199b331743c7a1c1c0c2003ee7e690dfe2223db1b7d3b540682"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "28d116fac87891c029a7417f99343c312b8a6363f34146743f9d34a0771f48cf"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "bf59523003e13e2e82b2a67779caf10375553185a87294a1a18d9e9462e9e95a"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-11-18T07:00:01Z",
+    "completed_at": "2026-11-18T07:00:02Z"
+  },
+  "integrity": {
+    "run": {
+      "id": "example-termination-single-report",
+      "test_system_status": "ERROR",
+      "conclusion": "INCONCLUSIVE",
+      "success": false,
+      "percentage": 33.333333333333336
+    },
+    "trials": [
+      {
+        "id": "trial-ended",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-timeout",
+        "test_system_status": "ERROR",
+        "success": false,
+        "percentage": 0
+      },
+      {
+        "id": "trial-crash",
+        "test_system_status": "ERROR",
+        "success": false,
+        "percentage": 0
+      }
+    ],
+    "checks": [
+      {
+        "id": "completeness",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": false,
+        "percentage": 33.333333333333336,
+        "findings": [
+          {
+            "category": "ended-by-timeout",
+            "classification": "test_system",
+            "summary": "The trial did not end on its own: it ended by timeout.",
+            "trial_id": "trial-timeout"
+          },
+          {
+            "category": "ended-by-crash",
+            "classification": "test_system",
+            "summary": "The trial did not end on its own: it ended by crash.",
+            "trial_id": "trial-crash"
+          }
+        ]
+      },
+      {
+        "id": "termination",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": true,
+        "percentage": 100.0,
+        "findings": [],
+        "referrals": [
+          {
+            "trial_id": "trial-timeout",
+            "check": "completeness",
+            "category": "ended-by-timeout"
+          },
+          {
+            "trial_id": "trial-crash",
+            "check": "completeness",
+            "category": "ended-by-crash"
+          }
+        ]
+      }
+    ]
+  }
+}
