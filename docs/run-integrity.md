@@ -32,12 +32,68 @@ Each integrity check is a small rule with its own id, version, schema, recorded 
 
 | Id | Version | Rule |
 | --- | --- | --- |
-| `completeness` | 1.0.0 | Every planned trial has a recording and observations. None are missing, truncated, or empty. The trial ended on its own: termination `completed`. `timeout` and `crash` are test-system findings. |
+| `completeness` | 1.0.0 | Every planned trial has a recording and observations. None are missing, truncated, or empty. The trial ended on its own: termination `completed`. `timeout` and `crash` are test-system findings, and `completeness` is the only check that reports them. |
 | `pins` | 1.0.0 | The manifest pin hashes match the verification lock for specs, runner, verifier, world, and configuration. |
 | `same-input-agreement` | 1.0.0 | Identical recordings with different outcomes are a grader problem. Different recordings follow `robot_determinism`. |
 | `ci-publisher` | 1.0.0 | A check run left open after the publisher received HTTP 404 is a test-system finding. |
+| `plan-conformance` | 1.0.0 | The plan, the trials, and the lock agree on the trial count and the command speed. `trials.results[].index` is exactly 1 to N and each path is `trials/trial-NN.json` for its own index. A run whose preconditions are unmet is not applicable. |
+| `termination` | 1.0.0 | Every trial that ended on its own records a stop reason, and the plan allows it. A timeout or crash is not reported here: the check refers to the `completeness` finding. |
+| `recording` | 1.0.0 | Each present recording is a usable MCAP file: it has a valid footer, the required channels have messages, timestamps never go backwards, no gap is over the limit, and the file matches `media.json`. No media means not applicable. |
 
 The first three are the checks named on issue 6. `ci-publisher` is the check named in the owner's note on that issue: a GitHub or CI publisher glitch that leaves a check run open after HTTP 404 has to come back as a test-system result. Timing, broader CI job status, and infrastructure signatures in logs remain later checks, added the same way.
+
+### Plan conformance, termination, and recording
+
+These three checks are registered together at 1.0.0. They are the contract for the evaluator implementation that builds them next. The contract carries the rule, the evidence, and the finding categories. Reading a trial file or an MCAP recording belongs to the implementation, which puts what it read into `evidence.<check id>`.
+
+**`plan-conformance`.** The evidence is the plan's trial count and command speed, `trials.count`, the `trials.results` entries (`index` and `path`), and the lock's own plan when the manifest embeds a lock block.
+
+- The plan trial count, `trials.count`, the number of `trials.results` entries, and the lock's plan trial count must agree. Each disagreeing comparison is `trial-count-mismatch`.
+- The plan `command_speed` must equal the lock's, or the finding is `command-speed-mismatch`.
+- The indexes must be exactly 1 to N, where N is the plan trial count: `index-missing`, `index-duplicate`, and `index-out-of-range`. Each path must be `trials/trial-NN.json` for its own index, or the finding is `path-mismatch`.
+- When the manifest has no lock block, the lock comparisons are not made and are not counted.
+- A run whose preconditions are unmet runs no trials, and `evidence['plan-conformance'].preconditions.met` is `false`. The check is then not applicable, not an error.
+- The findings carry no trial id. A missing or hash-mismatched trial file stays a `completeness` finding, so this check never repeats one.
+- `percentage` is 100 times the subjects without a finding divided by the subjects. The subjects are the comparisons that were made, one per index 1 to N, and one per result entry whose index is outside 1 to N. A run with two disagreeing counts and nothing else wrong, out of three counts, one command speed, and four indexes, is 6 of 8 subjects clean and reads 75.
+
+**`termination`.** The evidence is `allowed_stop_reasons`, which the plan declares, and for each trial the stop reason it records and the stop reason the manifest copies.
+
+The stop reasons are a fixed vocabulary:
+
+| Stop reason | Meaning |
+| --- | --- |
+| `time-limit` | The scenario's own time limit ran out. This is a robot outcome for the scenario evaluator, not a test-system problem. |
+| `mission-done` | The mission finished. |
+| `left-world` | The robot left the world. |
+| `simulation-broken` | The simulation broke, for example a non-finite physics state. |
+| `adapter-or-scenario-done` | The adapter or the scenario said the trial was done. |
+
+For a trial that ended on its own (termination `completed`), the check reports:
+
+- `missing-stop-reason`: the trial records no stop reason.
+- `unknown-stop-reason`: the recorded text is outside the vocabulary.
+- `disallowed-stop-reason`: the reason is in the vocabulary and the plan does not allow it. A plan that does not list `simulation-broken` therefore reports a broken simulation here.
+- `stop-reason-mismatch`: the trial and the manifest record different reasons.
+
+**One report for a timeout or a crash.** `completeness` still owns timeout and crash: a trial that did not finish or produced no usable result. `termination` only checks that every trial that did end records a stop reason and that the plan allows it. When a trial's termination is `timeout` or `crash`, `termination` raises no finding of its own for it. It lists the trial under `referrals`, with the `completeness` category (`ended-by-timeout` or `ended-by-crash`) that reports it, so each event is reported once. This follows from the two words meaning different things: a `time-limit` stop is the scenario ending the trial on its own, and a `timeout` is the trial not finishing at all.
+
+- `referrals` is only allowed on `termination`, and `termination` always has it, empty when there is nothing to refer. A referral is not a finding: it does not change `success` or `percentage`.
+- A result that has a referral also reports `completeness` with the finding it points at. Across `completeness` and `termination`, a trial that timed out or crashed has exactly one finding.
+- `percentage` counts only the trials that ended on their own. When none did, the check is not applicable.
+
+**`recording`.** The evidence declares the `required_channels` and the `max_gap_seconds` limit, says whether media was available, and carries for each trial what an MCAP reader found (state, size, sha256, and per channel the message count, the number of backwards timestamps, and the longest gap), the size and hashes that `media.json` records, and the observation hash from the run evidence.
+
+- `mcap-incomplete`: the file does not open or has no valid footer and summary.
+- `missing-channel`: a required channel is absent or has no messages.
+- `timestamps-backwards`: a channel has messages whose log time is earlier than the message before it.
+- `message-gap-exceeded`: a channel has a gap longer than the declared limit.
+- `media-file-mismatch`: the file's size or sha256 differs from `media.json`.
+- `observation-link-mismatch`: `observation_sha256` in `media.json` differs from the run evidence for that trial.
+- Only trials whose recording `completeness` reports as present are judged. A missing, truncated, or empty recording stays a `completeness` finding.
+- Without media (`media_available` is `false`, with no trials) the check is not applicable, not an error.
+- The check judges structure, channels, and time. It does not judge what the recorded motion means, and the channel list and the gap limit are declared in the evidence and are not part of the check version.
+
+`success` and `percentage` follow the rule for every check: a check with a finding has `success` false, and a not-applicable check has no percentage. Not-checked subjects on a check and the denominator for the existing checks are a separate change, tracked in [livingproof-evaluator#34](https://github.com/Living-Proof-Labs/livingproof-evaluator/issues/34).
 
 `completeness` percentage is 100 times the complete planned trials divided by the planned trials. `pins` percentage is 100 times the matching subjects divided by the five subjects. `same-input-agreement` percentage is 100 times the agreeing comparable groups divided by the comparable groups, and 100 when the run has no comparable group. A comparable group is two or more trials that share an input hash and have recording hashes. `ci-publisher` percentage is 100 times the check runs that were not left open after HTTP 404, divided by the check runs in the evidence.
 
@@ -68,7 +124,7 @@ A consumer of major version 1 accepts any format `livingproof-evaluator-result/1
 3. Add the example under `examples/integrity/<id>/` as `request.json` and `result.json`.
 4. Add `tests/integrity/test_<id>.py` with the assertions for that rule.
 
-The other check schemas, fixtures, and tests stay as they are. Evidence for the new check goes under `evidence.<id>`. A check that needs a new finding field, or a pin subject outside the five names, edits the shared finding definition in `schema/integrity/result.schema.json`. The category text must not contain the verdict words `pass`, `fail`, `verdict`, `grade`, or `success`.
+The other check schemas, fixtures, and tests stay as they are. Evidence for the new check goes under `evidence.<id>`. A check that needs a new finding field, or a pin subject outside the five names, edits the shared finding definition in `schema/integrity/result.schema.json`. `referrals` is the one check-level field that is not a finding: the shared check definition allows it on `termination` only. The category text must not contain the verdict words `pass`, `fail`, `verdict`, `grade`, or `success`.
 
 ## Where the implementation should live
 
@@ -114,6 +170,15 @@ Integrity fixtures, example data unless noted:
 - `examples/integrity/same-input-agreement/grader-disagreement/` is example data for identical recordings and different outcomes.
 - `examples/integrity/same-input-agreement/robot-variation/` is example data for different recordings with `robot_determinism` set to `non-deterministic`. The percentage stays 100.
 - `examples/integrity/same-input-agreement/undeclared/` is example data for a simulation that omits `robot_determinism`.
+- `examples/integrity/plan-conformance/conformant/` is example data in which the plan, the trials, and the lock agree.
+- `examples/integrity/plan-conformance/findings/` is example data that triggers every plan-conformance category. Only one of its 10 subjects is clean, so the percentage is 10.
+- `examples/integrity/plan-conformance/preconditions-unmet/` is example data for a run that ran no trials. The check is not applicable.
+- `examples/integrity/termination/clean/` is example data in which every allowed stop reason is clean.
+- `examples/integrity/termination/findings/` is example data that triggers every termination category.
+- `examples/integrity/termination/timeout-single-report/` is example data with one timeout and one crash. `completeness` reports each once, and `termination` refers to both and has no finding.
+- `examples/integrity/recording/clean/` is example data for two usable recordings.
+- `examples/integrity/recording/findings/` is example data that triggers every recording category, plus a trial whose recording is missing and is left to `completeness`.
+- `examples/integrity/recording/no-media/` is example data for a run without media. The check is not applicable.
 - `examples/integrity/ci-publisher/` is the contract shape of a real run. On 2026-11-12 at 02:08:22Z (13:08:22 AEDT), job `130921936148` of [capability-report run 43139248932](https://github.com/Living-Proof-Labs/livingproof-capability-report/actions/runs/43139248932) logged `HttpError: Not Found` while updating a check-run conclusion. The log names the report `Reporter tests (amd64)`. The check-run API, read on 2026-11-12, still shows check run `130922092615` (`Reporter tests (amd64)`, started 02:08:22Z) and check run `130922085540` (`Reporter tests (arm64)`, started 02:08:20Z) as `in_progress` with no conclusion. The job log does not print those numeric ids. The ids and the `in_progress` status come from the API. The HTTP error line comes from the job log.
 
 Descriptor fixtures, all example data, are listed in [docs/evaluator-descriptor.md](evaluator-descriptor.md). They are 1.1 results. Their payloads are copies of the graded scenario fixture, the partial pins fixture, and the clean integrity fixture.
@@ -125,7 +190,7 @@ The icon in every example is a placeholder rectangle. The publisher owns the rea
 ## Open questions
 
 - The five pin hashes need a canonical byte string. Published locks record commits for specs, runner, verifier, and world, a configuration sha256, and a verifier image digest. This contract compares sha256 values that both the manifest and the lock already carry.
-- A crash caused by the robot's controller and a crash caused by the simulator or the runner still need a way to be told apart. Timeout and crash are completeness findings here. The evaluator proposal leaves that distinction open.
+- A crash caused by the robot's controller and a crash caused by the simulator or the runner still need a way to be told apart. Timeout and crash are completeness findings here. The evaluator proposal leaves that distinction open. `termination` does not draw it either: it refers every timeout and crash to `completeness`.
 - Published runs need a home for `manifest.deterministic`. The proposal treats a certification run as deterministic.
 - An implementation that always emits `ci-publisher` needs a result for a run that has no CI record. The contract allows the check to be absent, or present with `applicable` false. It does not treat missing CI evidence as a failed check.
 - The report label for `robot_variation` is part of the display design.
