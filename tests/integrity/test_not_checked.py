@@ -71,7 +71,7 @@ def test_the_shared_check_definition_has_an_optional_not_checked_list() -> None:
     assert "not_checked" in check["properties"]
     assert "not_checked" not in check["required"]
     item = load_json(SCHEMA_ROOT / "integrity" / "result.schema.json")["$defs"]["not_checked"]
-    assert set(item["properties"]) == {"subject", "trial_id", "reason", "summary"}
+    assert set(item["properties"]) == {"subject", "trial_id", "reason"}
     assert set(item["properties"]["reason"]["enum"]) == REASONS
 
 
@@ -80,7 +80,7 @@ def test_the_shared_check_definition_has_an_optional_not_checked_list() -> None:
     [
         {"subject": "specs", "reason": "not-recorded"},
         {"subject": "verifier", "reason": "not-declared"},
-        {"subject": "world", "reason": "not-declared", "summary": "The lock has no world pin."},
+        {"subject": "configuration", "reason": "not-recorded"},
     ],
 )
 def test_a_not_checked_pin_subject_is_valid(item: dict) -> None:
@@ -97,7 +97,7 @@ def test_a_not_checked_pin_subject_is_valid(item: dict) -> None:
         {"subject": "specs", "trial_id": "trial-01", "reason": "not-recorded"},  # both
         {"subject": "specs", "reason": "skipped"},  # reason outside the vocabulary
         {"subject": "specs", "reason": ""},
-        {"subject": "specs", "reason": "not-recorded", "summary": ""},
+        {"subject": "specs", "reason": "not-recorded", "summary": "Not recorded."},
         {"subject": "specs", "reason": "not-recorded", "category": "hash-mismatch"},
         {"subject": "specs", "reason": "not-recorded", "percentage": 0},
         {"subject": "bogus", "reason": "not-recorded"},  # not one of the five

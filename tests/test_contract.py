@@ -150,7 +150,7 @@ def test_integrity_run_uses_success_and_percentage() -> None:
         by_id = {entry["id"]: entry for entry in check_registry()}
         for check in checks:
             entry = by_id[check["id"]]
-            assert check["version"] == entry["version"]
+            assert check["version"] in {entry["version"], *entry.get("previous_versions", [])}
             assert_valid(load_json(ROOT / entry["schema"]), check)
 
 

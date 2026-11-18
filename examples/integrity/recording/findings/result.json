@@ -140,6 +140,12 @@
             "summary": "The observation_sha256 in media.json differs from the run evidence.",
             "trial_id": "trial-link"
           }
+        ],
+        "not_checked": [
+          {
+            "trial_id": "trial-absent-file",
+            "reason": "not-present"
+          }
         ]
       }
     ]

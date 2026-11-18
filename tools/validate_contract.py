@@ -67,7 +67,8 @@ def dispatch_checks(document: dict) -> list[str]:
         if entry is None:
             errors.append(f"checks/{index}: id {check.get('id')!r} is not in the registry")
             continue
-        if check.get("version") != entry["version"]:
+        accepted = [entry["version"], *entry.get("previous_versions", [])]
+        if check.get("version") not in accepted:
             errors.append(
                 f"checks/{index}: version {check.get('version')!r} does not match {entry['version']}"
             )

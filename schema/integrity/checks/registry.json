@@ -3,15 +3,25 @@
   "checks": [
     {
       "id": "completeness",
-      "version": "1.0.0",
+      "version": "1.1.0",
+      "previous_versions": ["1.0.0"],
       "schema": "schema/integrity/checks/completeness.schema.json",
-      "examples": ["examples/integrity/completeness"]
+      "examples": [
+        "examples/integrity/completeness",
+        "examples/integrity/completeness-preconditions-unmet"
+      ]
     },
     {
       "id": "pins",
-      "version": "1.0.0",
+      "version": "1.1.0",
+      "previous_versions": ["1.0.0"],
       "schema": "schema/integrity/checks/pins.schema.json",
-      "examples": ["examples/integrity/pins", "examples/integrity/pins-partial"]
+      "examples": [
+        "examples/integrity/pins",
+        "examples/integrity/pins-partial",
+        "examples/integrity/pins-not-checked",
+        "examples/integrity/pins-none-checked"
+      ]
     },
     {
       "id": "same-input-agreement",
@@ -38,17 +48,20 @@
       "examples": [
         "examples/integrity/plan-conformance/conformant",
         "examples/integrity/plan-conformance/findings",
-        "examples/integrity/plan-conformance/preconditions-unmet"
+        "examples/integrity/plan-conformance/preconditions-unmet",
+        "examples/integrity/plan-conformance/no-lock"
       ]
     },
     {
       "id": "termination",
-      "version": "1.0.0",
+      "version": "1.1.0",
+      "previous_versions": ["1.0.0"],
       "schema": "schema/integrity/checks/termination.schema.json",
       "examples": [
         "examples/integrity/termination/clean",
         "examples/integrity/termination/findings",
-        "examples/integrity/termination/timeout-single-report"
+        "examples/integrity/termination/timeout-single-report",
+        "examples/integrity/termination/simulation-broken"
       ]
     },
     {

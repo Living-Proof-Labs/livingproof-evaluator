@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/result.schema.json",
   "title": "Run integrity result payload",
-  "description": "Test-system status for the run and for each planned trial, plus the checks that were reported. success and percentage are the quantitative result. percentage is a share from 0 to 100, and the document has no count of successes out of a count of trials. A failed check marks the run ERROR and INCONCLUSIVE. This schema has no robot verdict: verdict, grade, pass, and fail are rejected, and finding categories are lowercase slugs.",
+  "description": "Test-system status for the run and for each planned trial, plus the checks that were reported. success and percentage are the quantitative result. percentage is a share from 0 to 100, and the document has no count of successes out of a count of trials. A failed check marks the run ERROR and INCONCLUSIVE. A subject a check did not check is listed in that check's not_checked, outside the denominator of its percentage. This schema has no robot verdict: verdict, grade, pass, and fail are rejected, and finding categories are lowercase slugs.",
   "type": "object",
   "unevaluatedProperties": false,
   "required": ["run", "trials", "checks"],
@@ -182,6 +182,30 @@
         "check_run": {"type": "string", "minLength": 1}
       }
     },
+    "not_checked": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "required": ["reason"],
+      "properties": {
+        "subject": {
+          "$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/defs.schema.json#/$defs/slug",
+          "description": "The thing that was not checked, for a check whose subjects are named. The check's schema lists the names it may use."
+        },
+        "trial_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The trial that was not checked, for a check whose subjects are trials."
+        },
+        "reason": {
+          "enum": ["not-recorded", "not-declared", "not-present"],
+          "description": "not-recorded: the run's own record has no value to compare. not-declared: the plan or the lock has no value to compare with. not-present: the thing to read does not exist, and another check reports that."
+        }
+      },
+      "oneOf": [
+        {"required": ["subject"], "properties": {"trial_id": false}},
+        {"required": ["trial_id"], "properties": {"subject": false}}
+      ]
+    },
     "referral": {
       "type": "object",
       "unevaluatedProperties": false,
@@ -238,6 +262,12 @@
           "items": {"$ref": "#/$defs/referral"},
           "description": "Only termination reports referrals. A referral names a trial whose ending completeness reports, so that ending is reported once and termination raises no finding of its own for it. A referral is not a finding: it does not change success or percentage."
         },
+        "not_checked": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/not_checked"},
+          "description": "Subjects this check could not check, each with the reason. A not-checked subject is not in the denominator of percentage and is not a finding. Only pins, plan-conformance, and recording report it. Optional for the check versions that existed before it, and required on pins 1.1.0 onward."
+        },
         "limits": {
           "type": "object",
           "unevaluatedProperties": false,
@@ -257,6 +287,15 @@
         "fail": false
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "id": {"enum": ["pins", "plan-conformance", "recording"]}
+            },
+            "required": ["id"]
+          },
+          "else": {"properties": {"not_checked": false}}
+        },
         {
           "if": {
             "properties": {
