@@ -37,9 +37,9 @@ LATEST = {
     "pins": ("1.1.0", ["1.0.0"]),
     "same-input-agreement": ("1.0.0", None),
     "ci-publisher": ("1.0.0", None),
-    "plan-conformance": ("1.0.0", None),
+    "plan-conformance": ("1.1.0", ["1.0.0"]),
     "termination": ("1.1.0", ["1.0.0"]),
-    "recording": ("1.0.0", None),
+    "recording": ("1.1.0", ["1.0.0"]),
 }
 
 
@@ -58,8 +58,14 @@ def minimal(check_id: str, version: str) -> dict:
     }
     if check_id == "termination":
         check["referrals"] = []
-    if check_id == "pins" and version != "1.0.0":
-        check["not_checked"] = []
+    if check_id in REPORTS_NOT_CHECKED and version != "1.0.0":
+        # not_checked is required from 1.1.0. A pins check that is not applicable checked
+        # nothing, so it lists all five subjects.
+        check["not_checked"] = (
+            [{"subject": s, "reason": "not-declared"} for s in PIN_SUBJECTS]
+            if check_id == "pins"
+            else []
+        )
     return check
 
 
@@ -139,30 +145,36 @@ def test_the_envelope_rejects_not_checked_on_a_check_that_does_not_report_it() -
 
 def test_a_not_applicable_check_may_say_what_it_did_not_check() -> None:
     check = minimal("pins", "1.1.0")
-    check["not_checked"] = [{"subject": s, "reason": "not-declared"} for s in PIN_SUBJECTS]
     assert_valid(schema_for("pins"), check)
     check["percentage"] = 100
     assert_invalid(schema_for("pins"), check)
 
 
 def test_plan_conformance_and_recording_name_what_they_may_skip() -> None:
-    plan = minimal("plan-conformance", "1.0.0")
+    plan = minimal("plan-conformance", "1.1.0")
     plan["not_checked"] = [{"subject": "lock-command-speed", "reason": "not-declared"}]
     assert_valid(schema_for("plan-conformance"), plan)
     plan["not_checked"] = [{"subject": "specs", "reason": "not-declared"}]
     assert_invalid(schema_for("plan-conformance"), plan)
     plan["not_checked"] = [{"trial_id": "trial-01", "reason": "not-present"}]
     assert_invalid(schema_for("plan-conformance"), plan)
-    recording = minimal("recording", "1.0.0")
+    recording = minimal("recording", "1.1.0")
     recording["not_checked"] = [{"trial_id": "trial-01", "reason": "not-present"}]
     assert_valid(schema_for("recording"), recording)
     recording["not_checked"] = [{"subject": "specs", "reason": "not-present"}]
     assert_invalid(schema_for("recording"), recording)
 
 
-def test_not_checked_is_optional_on_plan_conformance_and_recording() -> None:
-    for check_id in ("plan-conformance", "recording"):
-        assert_valid(schema_for(check_id), minimal(check_id, "1.0.0"))
+@pytest.mark.parametrize("check_id", ["plan-conformance", "recording"])
+def test_not_checked_is_required_from_1_1_0_and_not_allowed_at_1_0_0(check_id: str) -> None:
+    new = minimal(check_id, "1.1.0")
+    assert_valid(schema_for(check_id), new)
+    del new["not_checked"]
+    assert_invalid(schema_for(check_id), new)
+    old = minimal(check_id, "1.0.0")
+    assert_valid(schema_for(check_id), old)
+    old["not_checked"] = []
+    assert_invalid(schema_for(check_id), old)
 
 
 # The denominator.
@@ -243,7 +255,8 @@ def test_the_request_may_leave_a_pin_out() -> None:
 
 def test_the_other_checks_already_leave_unjudged_subjects_out_of_the_denominator() -> None:
     """plan-conformance, termination and recording count only what they judged (their 1.0.0
-    rules), so they follow the rule and are not bumped for it."""
+    rules), so the denominator rule itself needed no change for them. plan-conformance and
+    recording are bumped to 1.1.0 for ``not_checked``, not for the denominator."""
     from integrity_rules import plan_conformance, recording, termination
 
     vocab = {
@@ -266,10 +279,10 @@ def test_the_other_checks_already_leave_unjudged_subjects_out_of_the_denominator
     ]
     findings = load_json(EXAMPLES / "termination" / "findings" / "request.json")["integrity"]
     # Five trials ended on their own; the timeout and the crash are referrals, not counted.
-    assert termination(findings, vocab)["percentage"] == 20
+    assert termination(findings, vocab, "1.0.0")["percentage"] == 20
     rec = load_json(EXAMPLES / "recording" / "findings" / "request.json")["integrity"]
     # Seven present recordings are judged; the missing one is not in the denominator.
-    assert recording(rec)["percentage"] == pytest.approx(100 / 7)
+    assert recording(rec, "1.0.0")["percentage"] == pytest.approx(100 / 7)
 
 
 # Versions: the old ones stay valid.
@@ -284,7 +297,9 @@ def test_the_registry_names_the_current_version_and_the_ones_that_stay_valid() -
         assert entry.get("previous_versions") == previous
 
 
-@pytest.mark.parametrize("check_id", ["pins", "completeness", "termination"])
+@pytest.mark.parametrize(
+    "check_id", ["pins", "completeness", "termination", "plan-conformance", "recording"]
+)
 def test_version_1_0_0_results_are_still_valid(check_id: str) -> None:
     old = minimal(check_id, "1.0.0")
     assert_valid(schema_for(check_id), old)
@@ -293,7 +308,7 @@ def test_version_1_0_0_results_are_still_valid(check_id: str) -> None:
         {
             **old,
             "version": LATEST[check_id][0],
-            **({"not_checked": []} if check_id == "pins" else {}),
+            **({"not_checked": []} if check_id in REPORTS_NOT_CHECKED else {}),
         },
     )
     assert_invalid(schema_for(check_id), {**old, "version": "1.2.0"})
@@ -323,7 +338,7 @@ def test_every_example_check_is_at_a_registered_version() -> None:
             assert check["version"] in accepted[check["id"]], (example, check["id"])
             seen.add((check["id"], check["version"]))
     # Both versions of each bumped check are shown by an example.
-    for check_id in ("pins", "completeness", "termination"):
+    for check_id in ("pins", "completeness", "termination", "plan-conformance", "recording"):
         assert (check_id, "1.0.0") in seen and (check_id, "1.1.0") in seen
 
 
@@ -343,3 +358,83 @@ def test_an_example_that_reports_not_checked_never_also_finds_the_same_subject()
             found = {item.get("subject") or item.get("trial_id") for item in check["findings"]}
             assert not skipped & found
     assert reported >= 4
+
+
+# Review of PR 37 (Vera) and Rivet's decisions on it.
+
+
+def test_pins_applicability_and_the_five_subjects_agree() -> None:
+    """A pins check lists all five subjects exactly when nothing was checked (F4)."""
+    applicable = minimal("pins", "1.1.0")
+    applicable.update(applicable=True, percentage=100, not_checked=[])
+    assert_valid(schema_for("pins"), applicable)
+    applicable["not_checked"] = [{"subject": s, "reason": "not-declared"} for s in PIN_SUBJECTS]
+    assert_invalid(schema_for("pins"), applicable)  # applicable, yet nothing was checked
+    applicable["not_checked"] = [{"subject": s, "reason": "not-declared"} for s in PIN_SUBJECTS[:4]]
+    assert_valid(schema_for("pins"), applicable)
+    not_applicable = minimal("pins", "1.1.0")
+    assert_valid(schema_for("pins"), not_applicable)
+    for short in (
+        [],
+        [{"subject": "specs", "reason": "not-declared"}],
+        not_applicable["not_checked"][:4],
+    ):
+        broken = {**not_applicable, "not_checked": short}
+        assert_invalid(schema_for("pins"), broken)  # not applicable, yet a subject was checked
+
+
+def test_the_docs_say_which_pins_rules_the_schema_cannot_enforce() -> None:
+    doc = (ROOT / "docs" / "run-integrity.md").read_text()
+    assert "rule-level" in doc
+    assert "neither" in doc and "not-declared" in doc
+
+
+def test_a_pin_neither_side_carries_is_not_declared() -> None:
+    payload = _request({"runner": "a"}, {"runner": "a"})
+    reasons = {item["subject"]: item["reason"] for item in pins(payload)["not_checked"]}
+    assert reasons == {s: "not-declared" for s in PIN_SUBJECTS if s != "runner"}
+
+
+def test_not_present_means_no_readable_recording() -> None:
+    result = load_json(SCHEMA_ROOT / "integrity" / "result.schema.json")
+    definition = result["$defs"]["not_checked"]["properties"]["reason"]["description"]
+    assert "missing, truncated or empty" in definition
+    assert "does not exist" not in definition
+
+
+def test_the_termination_evidence_description_says_simulation_broken_is_ignored() -> None:
+    schema = schema_for("termination")
+    text = schema["$defs"]["evidence"]["properties"]["allowed_stop_reasons"]["description"]
+    assert "simulation-broken" in text and "never" in text
+
+
+def test_the_reference_rules_default_to_the_current_version() -> None:
+    import inspect
+
+    import integrity_rules
+
+    for function in (
+        integrity_rules.termination,
+        integrity_rules.recording,
+        integrity_rules.plan_conformance,
+        integrity_rules.completeness_applicable,
+    ):
+        assert inspect.signature(function).parameters["version"].default == "1.1.0", function
+
+
+# Published examples stay as they were at v1.1.0, so one version label is one reading. The digests
+# are those of the example files in the v1.1.0 tag. Only new examples may be added.
+def test_every_example_published_at_v1_1_0_is_unchanged() -> None:
+    import hashlib
+
+    published = load_json(ROOT / "tests" / "integrity" / "published_examples_v1_1_0.json")
+    assert len(published) >= 36
+    for relative, digest in published.items():
+        data = (ROOT / relative).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == digest, relative
+
+
+def test_the_docs_table_names_every_current_version() -> None:
+    doc = (ROOT / "docs" / "run-integrity.md").read_text()
+    for check_id, (version, _) in LATEST.items():
+        assert f"| `{check_id}` | {version} |" in doc, check_id

@@ -212,9 +212,11 @@ def test_a_concrete_out_of_order_channel_has_different_findings_and_the_same_ver
     assert judge(file_gap) == ["message-gap-exceeded", "timestamps-backwards"]
 
 
-def test_reporting_a_truncation_once_does_not_change_which_trials_fail() -> None:
+def test_a_file_with_no_valid_footer_is_one_report_in_each_version() -> None:
+    """Adapted after Rivet's decision (completeness owns a file with no valid footer). Under
+    1.0.0 the trial fails with mcap-incomplete alone, whatever channels the reader found. Under
+    1.1.0 recording does not judge it and lists it, so the one report is completeness's."""
     request = load_json(EXAMPLES / "recording" / "clean" / "request.json")["integrity"]
-    results = []
     for channels in (
         [],
         copy.deepcopy(request["evidence"]["recording"]["trials"][0]["mcap"]["channels"]),
@@ -222,7 +224,12 @@ def test_reporting_a_truncation_once_does_not_change_which_trials_fail() -> None
         payload = copy.deepcopy(request)
         mcap = payload["evidence"]["recording"]["trials"][0]["mcap"]
         mcap["state"], mcap["channels"] = "incomplete", channels
-        results.append(recording(payload))
-    assert results[0]["percentage"] == results[1]["percentage"] == 50
-    assert [i["category"] for i in results[0]["findings"]] == ["mcap-incomplete"]
-    assert [i["category"] for i in results[1]["findings"]] == ["mcap-incomplete"]
+        old = recording(payload, "1.0.0")
+        if channels:
+            assert [i["category"] for i in old["findings"]] == ["mcap-incomplete"]
+        else:
+            assert "mcap-incomplete" in [i["category"] for i in old["findings"]]
+        assert old["percentage"] == 50
+        new = recording(payload, "1.1.0")
+        assert new["findings"] == [] and new["percentage"] == 100
+        assert new["not_checked"] == [{"trial_id": "trial-01", "reason": "not-present"}]

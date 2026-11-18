@@ -2,7 +2,8 @@
 """Rivet's answers on livingproof-evaluator#34 to the recording questions (evaluator-run#16).
 
 1. Gaps are measured in log-time order, not file order. Out-of-order writes are not a gap.
-2. A truncated file is reported once, as the recording finding, not also as missing-channel.
+2. A truncated file is reported once (superseded by Rivet's decision on the review: completeness
+   owns a file with no valid footer, and recording 1.1.0 lists it as not-present).
 3. completeness reads the recordings the manifest lists, so a listed recording that is missing
    or truncated makes the run incomplete.
 4. A run with one of three listed recordings missing is never COMPLETED and 100. It counts
@@ -62,27 +63,28 @@ def test_out_of_order_writes_are_not_a_capture_gap() -> None:
     assert found == ["timestamps-backwards"]
 
 
-# 2. A truncated file is reported once.
+# 2. A truncated file is reported once. Rivet's decision on the review: completeness owns a file
+# that exists but has no valid footer, as truncated-recording. From recording 1.1.0 this check
+# does not judge it, lists it as not-present, and no longer emits mcap-incomplete.
 
 
-def test_an_incomplete_file_is_reported_once_and_not_as_missing_channels() -> None:
-    request = load_json(EXAMPLES / "recording" / "findings" / "request.json")["integrity"]
-    entry = next(
-        e for e in request["evidence"]["recording"]["trials"] if e["id"] == "trial-incomplete"
-    )
-    assert entry["mcap"]["state"] == "incomplete"
-    assert entry["mcap"]["channels"] == []  # a reader that cannot open the file finds no channels
-    result = load_json(EXAMPLES / "recording" / "findings" / "result.json")
-    found = [
-        i["category"]
-        for i in reported(result, "recording")["findings"]
-        if i["trial_id"] == "trial-incomplete"
-    ]
-    assert found == ["mcap-incomplete"]
+def test_a_file_with_no_valid_footer_is_completeness_s_and_listed_not_present() -> None:
+    request = load_json(EXAMPLES / "recording" / "not-checked" / "request.json")["integrity"]
+    result = load_json(EXAMPLES / "recording" / "not-checked" / "result.json")
+    state = next(t for t in request["trials"] if t["id"] == "trial-incomplete")["recording"]
+    assert state["state"] == "truncated" and "sha256" in state  # the file exists
+    ids = {e["id"] for e in request["evidence"]["recording"]["trials"]}
+    assert "trial-incomplete" not in ids
+    by_check = {
+        c["id"]: [(i["category"], i["trial_id"]) for i in c["findings"]]
+        for c in result["integrity"]["checks"]
+    }
+    assert ("truncated-recording", "trial-incomplete") in by_check["completeness"]
+    assert all(trial != "trial-incomplete" for _, trial in by_check["recording"])
     matches_rules(reported(result, "recording"), recording(request))
 
 
-def test_the_rule_gives_one_finding_for_an_incomplete_file_whatever_its_channels() -> None:
+def test_the_rule_does_not_judge_a_file_the_evidence_calls_incomplete() -> None:
     request = load_json(EXAMPLES / "recording" / "clean" / "request.json")["integrity"]
     for channels in (
         [],
@@ -91,17 +93,20 @@ def test_the_rule_gives_one_finding_for_an_incomplete_file_whatever_its_channels
         payload = json.loads(json.dumps(request))
         mcap = payload["evidence"]["recording"]["trials"][0]["mcap"]
         mcap["state"], mcap["channels"] = "incomplete", channels
-        assert [i["category"] for i in recording(payload)["findings"]] == ["mcap-incomplete"]
+        expected = recording(payload)
+        assert expected["findings"] == []
+        assert expected["not_checked"] == [{"trial_id": "trial-01", "reason": "not-present"}]
     payload = json.loads(json.dumps(request))
     payload["evidence"]["recording"]["trials"][0]["mcap"]["channels"] = []
     categories = [i["category"] for i in recording(payload)["findings"]]
     assert categories == ["missing-channel", "missing-channel"]  # a complete file still is judged
 
 
-def test_the_schema_and_docs_say_the_truncation_is_reported_once() -> None:
+def test_the_schema_and_docs_say_completeness_owns_a_truncated_file() -> None:
     schema = load_json(CHECKS / "recording.schema.json")
-    assert "once" in schema["description"] and "missing-channel" in schema["description"]
-    assert "reported once" in DOC
+    text = schema["description"]
+    assert "truncated-recording" in text and "mcap-incomplete" in text and "1.0.0" in text
+    assert "truncated-recording" in DOC and "1.0.0 only" in DOC
 
 
 # 3 and 4. completeness reads the listed recordings, and a missing one is a finding.
@@ -158,7 +163,7 @@ def test_a_recording_that_was_not_judged_is_always_a_completeness_finding() -> N
         }
         assert set(skipped) <= found, example
         assert result["integrity"]["run"]["success"] is False, example
-    assert seen >= 2
+    assert seen >= 4
 
 
 def test_a_recording_problem_is_reported_by_one_check_only() -> None:

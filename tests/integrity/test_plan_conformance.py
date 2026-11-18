@@ -195,3 +195,36 @@ def test_the_conformant_example_checked_everything_so_lists_nothing() -> None:
 def test_unmet_preconditions_list_nothing_as_not_checked() -> None:
     _, result = load("preconditions-unmet")
     assert "not_checked" not in reported(result, "plan-conformance")
+
+
+# plan-conformance 1.1.0 (Rivet's decision on the review of PR 37): not_checked is required.
+
+
+def test_a_1_1_0_result_with_every_comparison_made_says_so_with_an_empty_list() -> None:
+    request, result = load("lock-checked")
+    check = reported(result, "plan-conformance")
+    assert check["version"] == "1.1.0" and check["not_checked"] == []
+    assert check["percentage"] == 100
+    matches_rules(check, plan_conformance(request["integrity"]))
+
+
+def test_the_1_0_0_reference_rule_has_no_not_checked() -> None:
+    request, _ = load("conformant")
+    assert "not_checked" not in plan_conformance(request["integrity"], "1.0.0")
+    assert plan_conformance(request["integrity"])["not_checked"] == []
+
+
+def test_unmet_preconditions_at_1_1_0_still_list_an_empty_not_checked() -> None:
+    request, result = load("preconditions-unmet")
+    assert reported(result, "plan-conformance")["version"] == "1.0.0"
+    assert plan_conformance(request["integrity"]) == {
+        "applicable": False,
+        "findings": [],
+        "not_checked": [],
+    }
+    other = load_json(
+        ROOT / "examples" / "integrity" / "completeness-preconditions-unmet" / "result.json"
+    )
+    check = reported(other, "plan-conformance")
+    assert check["version"] == "1.1.0" and check["applicable"] is False
+    assert check["not_checked"] == []

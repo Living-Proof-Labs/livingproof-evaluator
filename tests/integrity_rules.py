@@ -9,10 +9,12 @@ evidence for the check. Otherwise it returns a dict with the fields of the check
 that the rules fix: applicable, percentage, findings as (category, trial_id) pairs with a
 summary, and for termination its referrals.
 
-Three checks have a rule that changed in a later check version, and the functions say which
-version they implement: ``pins`` is 1.1.0 (its 1.0.0 rule divided by five and had no
-``not_checked``), ``termination`` takes ``version`` (1.1.0 never allows ``simulation-broken``)
-and ``completeness_applicable`` is 1.1.0 (1.0.0 was always applicable). Where a check reports
+Five checks have a rule that changed in a later check version. ``pins`` is 1.1.0 only (its
+1.0.0 rule divided by five and had no ``not_checked``). ``termination``, ``recording``,
+``plan_conformance`` and ``completeness_applicable`` take ``version`` and **default to 1.1.0**,
+the current rule, so a caller that forgets it tests the current one; pass ``"1.0.0"`` for the
+old rule. 1.1.0 never allows ``simulation-broken``, reports ``not_checked`` (recording and
+plan-conformance), and leaves a file with no valid footer to completeness. Where a check reports
 ``not_checked``, its subjects are outside the denominator of ``percentage``.
 """
 
@@ -46,14 +48,14 @@ def _trial_path(index: int) -> str:
     return f"trials/trial-{index:02d}.json"
 
 
-def plan_conformance(payload: dict[str, Any]) -> dict[str, Any] | None:
+def plan_conformance(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any] | None:
     """The plan, the trials and the lock agree. Subjects are the comparisons made,
     one per index 1..N, and one per result entry whose index is outside 1..N."""
     evidence = payload.get("evidence", {}).get("plan-conformance")
     if evidence is None:
         return None
     if not evidence.get("preconditions", {}).get("met", True):
-        return _not_applicable()
+        return _not_applicable() if version == "1.0.0" else {**_not_applicable(), "not_checked": []}
     planned = evidence["plan"]["trial_count"]
     results = evidence["trials"]["results"]
     findings: list[dict[str, Any]] = []
@@ -132,12 +134,14 @@ def plan_conformance(payload: dict[str, Any]) -> dict[str, Any] | None:
         not_checked.append({"subject": "lock-trial-count", "reason": "not-declared"})
     if lock_plan is None or plan_speed is None or "command_speed" not in lock_plan:
         not_checked.append({"subject": "lock-command-speed", "reason": "not-declared"})
-    return {
+    result = {
         "applicable": True,
         "percentage": _share(subjects - failing, subjects),
         "findings": findings,
-        "not_checked": not_checked,
     }
+    if version != "1.0.0":
+        result["not_checked"] = not_checked
+    return result
 
 
 PIN_SUBJECTS = ("specs", "runner", "verifier", "world", "configuration")
@@ -199,7 +203,7 @@ def completeness_applicable(payload: dict[str, Any], version: str = "1.1.0") -> 
 
 
 def termination(
-    payload: dict[str, Any], vocabulary: set[str], version: str = "1.0.0"
+    payload: dict[str, Any], vocabulary: set[str], version: str = "1.1.0"
 ) -> dict[str, Any] | None:
     """Every trial that ended on its own records a stop reason that the plan allows.
     A trial whose termination is timeout or crash is referred to completeness.
@@ -274,14 +278,21 @@ def termination(
     return result
 
 
-def recording(payload: dict[str, Any]) -> dict[str, Any] | None:
+def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any] | None:
     """Each present recording is a usable MCAP file that matches media.json. Trials whose
-    recording completeness does not report as present are not judged here."""
+    recording completeness does not report as present are not judged here.
+
+    1.1.0 (the default): a file with no valid footer is completeness's, as a ``truncated``
+    recording, so this check does not judge it and does not emit ``mcap-incomplete``. Every trial
+    it did not judge is listed in ``not_checked``, also when it judged nothing. 1.0.0, the old
+    rule, judged such a file, emitted ``mcap-incomplete`` and had no ``not_checked``."""
     evidence = payload.get("evidence", {}).get("recording")
     if evidence is None:
         return None
+    new = version != "1.0.0"
     if not evidence["media_available"]:
-        return _not_applicable()
+        # The whole check is not applicable, so there is no trial to list.
+        return {**_not_applicable(), "not_checked": []} if new else _not_applicable()
     present = {
         trial["id"] for trial in payload["trials"] if trial["recording"]["state"] == "present"
     }
@@ -291,6 +302,8 @@ def recording(payload: dict[str, Any]) -> dict[str, Any] | None:
     for entry in evidence["trials"]:
         trial_id = entry["id"]
         if trial_id not in present:
+            continue
+        if new and entry["mcap"]["state"] != "complete":
             continue
         judged += 1
         trial_findings: list[dict[str, Any]] = []
@@ -305,10 +318,6 @@ def recording(payload: dict[str, Any]) -> dict[str, Any] | None:
             )
         channels = {channel["topic"]: channel for channel in mcap["channels"]}
         for topic in evidence["required_channels"]:
-            if mcap["state"] != "complete":
-                # A file that is not complete is reported once, as mcap-incomplete. Its channels
-                # are not also reported as missing, so the cause reads clearly.
-                break
             channel = channels.get(topic)
             if channel is None or channel["message_count"] == 0:
                 trial_findings.append(
@@ -357,25 +366,32 @@ def recording(payload: dict[str, Any]) -> dict[str, Any] | None:
         if trial_findings:
             failing.add(trial_id)
             findings.extend(trial_findings)
-    if not judged:
-        return _not_applicable()
-    # A trial that was not judged is listed, so a reader can tell it from a clean one: a recording
-    # that is not present is completeness's finding (not-present), and a present one that the
-    # evidence has no entry for was never read (not-recorded).
-    in_evidence = {entry["id"] for entry in evidence["trials"]}
     not_checked: list[dict[str, Any]] = []
-    for trial in payload["trials"]:
-        if trial["recording"]["state"] != "present":
-            not_checked.append({"trial_id": trial["id"], "reason": "not-present"})
-        elif trial["id"] not in in_evidence:
-            not_checked.append({"trial_id": trial["id"], "reason": "not-recorded"})
-    return {
+    if new:
+        # A trial that was not judged is listed, so a reader can tell it from a clean one. No
+        # readable recording (missing, truncated, empty, or a file with no valid footer) is
+        # not-present, and completeness reports it. A present one that the evidence has no entry
+        # for was never read: not-recorded.
+        by_id = {entry["id"]: entry for entry in evidence["trials"]}
+        for trial in payload["trials"]:
+            entry = by_id.get(trial["id"])
+            if trial["recording"]["state"] != "present":
+                not_checked.append({"trial_id": trial["id"], "reason": "not-present"})
+            elif entry is None:
+                not_checked.append({"trial_id": trial["id"], "reason": "not-recorded"})
+            elif entry["mcap"]["state"] != "complete":
+                not_checked.append({"trial_id": trial["id"], "reason": "not-present"})
+    if not judged:
+        return {**_not_applicable(), "not_checked": not_checked} if new else _not_applicable()
+    result: dict[str, Any] = {
         "applicable": True,
         "percentage": _share(judged - len(failing), judged),
         "limits": {"max_gap_seconds": evidence["max_gap_seconds"]},
         "findings": findings,
-        "not_checked": not_checked,
     }
+    if new:
+        result["not_checked"] = not_checked
+    return result
 
 
 def reported(result: dict[str, Any], check_id: str) -> dict[str, Any]:

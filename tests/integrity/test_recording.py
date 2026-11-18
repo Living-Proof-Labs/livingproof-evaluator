@@ -34,7 +34,7 @@ def test_usable_recordings_have_no_findings() -> None:
     assert check["success"] is True
     assert check["percentage"] == 100
     assert check["findings"] == []
-    matches_rules(check, recording(request["integrity"]))
+    matches_rules(check, recording(request["integrity"], "1.0.0"))
 
 
 def test_every_finding_category_has_a_triggering_trial() -> None:
@@ -52,7 +52,7 @@ def test_every_finding_category_has_a_triggering_trial() -> None:
     # Seven present recordings are judged and only trial-usable has no finding.
     assert check["percentage"] == 100 * 1 / 7
     assert all(item["classification"] == "test_system" for item in check["findings"])
-    matches_rules(check, recording(request["integrity"]))
+    matches_rules(check, recording(request["integrity"], "1.0.0"))
     assert result["integrity"]["run"]["conclusion"] == "INCONCLUSIVE"
 
 
@@ -76,7 +76,7 @@ def test_no_media_is_not_applicable_and_not_an_error() -> None:
     assert check["success"] is True
     assert "percentage" not in check
     assert check["findings"] == []
-    matches_rules(check, recording(request["integrity"]))
+    matches_rules(check, recording(request["integrity"], "1.0.0"))
     assert result["integrity"]["run"]["test_system_status"] == "COMPLETED"
 
 
@@ -97,16 +97,16 @@ def test_a_doctored_clean_fixture_is_caught_per_category() -> None:
     for category, doctor in cases.items():
         payload = json.loads(json.dumps(request["integrity"]))
         doctor(payload["evidence"]["recording"]["trials"][0])
-        found = Counter(item["category"] for item in recording(payload)["findings"])
+        found = Counter(item["category"] for item in recording(payload, "1.0.0")["findings"])
         assert found[category] == 1, category
-        assert recording(payload)["percentage"] == 50
+        assert recording(payload, "1.0.0")["percentage"] == 50
 
 
 def test_an_empty_channel_counts_as_missing() -> None:
     request, _ = load("clean")
     payload = json.loads(json.dumps(request["integrity"]))
     payload["evidence"]["recording"]["trials"][0]["mcap"]["channels"][0]["message_count"] = 0
-    found = [item["category"] for item in recording(payload)["findings"]]
+    found = [item["category"] for item in recording(payload, "1.0.0")["findings"]]
     assert found == ["missing-channel"]
 
 
@@ -143,7 +143,9 @@ def test_the_result_states_the_gap_limit_it_used() -> None:
         check = reported(result, "recording")
         declared = request["integrity"]["evidence"]["recording"]["max_gap_seconds"]
         assert check["limits"] == {"max_gap_seconds": declared}, name
-        assert recording(request["integrity"])["limits"] == {"max_gap_seconds": declared}, name
+        assert recording(request["integrity"], "1.0.0")["limits"] == {
+            "max_gap_seconds": declared
+        }, name
         assert_valid(result_schema(), result)
 
 
@@ -152,11 +154,11 @@ def test_changing_the_evidence_limit_changes_the_stated_limit() -> None:
     for limit in (0.05, 0.1, 2):
         payload = json.loads(json.dumps(request["integrity"]))
         payload["evidence"]["recording"]["max_gap_seconds"] = limit
-        assert recording(payload)["limits"] == {"max_gap_seconds": limit}
+        assert recording(payload, "1.0.0")["limits"] == {"max_gap_seconds": limit}
     # The stated limit is the one that was judged against: 0.01 s is below the 0.02 s gaps.
     strict = json.loads(json.dumps(request["integrity"]))
     strict["evidence"]["recording"]["max_gap_seconds"] = 0.01
-    result = recording(strict)
+    result = recording(strict, "1.0.0")
     assert result["limits"] == {"max_gap_seconds": 0.01}
     assert {item["category"] for item in result["findings"]} == {"message-gap-exceeded"}
 
@@ -168,7 +170,7 @@ def test_an_example_whose_stated_limit_differs_from_the_evidence_is_caught() -> 
     # The schema alone cannot compare it with the evidence, so the reference rules do.
     assert_valid(result_schema(), doctored)
     try:
-        matches_rules(reported(doctored, "recording"), recording(request["integrity"]))
+        matches_rules(reported(doctored, "recording"), recording(request["integrity"], "1.0.0"))
     except AssertionError:
         return
     raise AssertionError("a stated limit that differs from the evidence was accepted")
@@ -214,7 +216,7 @@ def test_a_check_that_is_not_applicable_states_no_limit() -> None:
     check = reported(result, "recording")
     assert check["applicable"] is False
     assert "limits" not in check
-    assert "limits" not in recording(request["integrity"])
+    assert "limits" not in recording(request["integrity"], "1.0.0")
     assert_valid(result_schema(), result)
     doctored = json.loads(json.dumps(result))
     reported(doctored, "recording")["limits"] = {"max_gap_seconds": 0.1}
@@ -232,13 +234,85 @@ def test_the_contract_fixes_no_gap_limit_in_the_limits_field() -> None:
 
 
 def test_a_recording_that_is_not_present_is_listed_as_not_checked() -> None:
-    request, result = load("findings")
+    """recording 1.1.0: a missing recording and a truncated one (a file with no valid footer) are
+    not judged here. completeness reports each, and this check lists both as not-present."""
+    request, result = load("not-checked")
     check = reported(result, "recording")
-    assert check["not_checked"] == [{"trial_id": "trial-absent-file", "reason": "not-present"}]
-    # The reason is completeness's to report, so it is not a finding here and is not counted.
-    assert "trial-absent-file" not in {item["trial_id"] for item in check["findings"]}
-    assert check["percentage"] == 100 * 1 / 7
+    assert check["version"] == "1.1.0"
+    assert check["not_checked"] == [
+        {"trial_id": "trial-incomplete", "reason": "not-present"},
+        {"trial_id": "trial-absent-file", "reason": "not-present"},
+    ]
+    judged = {item["id"] for item in request["integrity"]["evidence"]["recording"]["trials"]}
+    assert judged == {t["id"] for t in request["integrity"]["trials"]} - {
+        "trial-incomplete",
+        "trial-absent-file",
+    }
+    # Neither is a finding here, and neither is counted: one of six judged recordings is clean.
+    assert {item["trial_id"] for item in check["findings"]}.isdisjoint(
+        {"trial-incomplete", "trial-absent-file"}
+    )
+    assert "mcap-incomplete" not in {item["category"] for item in check["findings"]}
+    assert check["percentage"] == 100 * 1 / 6
     matches_rules(check, recording(request["integrity"]))
+    states = {t["id"]: t["recording"]["state"] for t in request["integrity"]["trials"]}
+    assert states["trial-incomplete"] == "truncated" and states["trial-absent-file"] == "missing"
+    completeness = reported(result, "completeness")
+    assert finding_keys(completeness) == [
+        ("missing-recording", "trial-absent-file"),
+        ("truncated-recording", "trial-incomplete"),
+    ]
+    assert completeness["percentage"] == 100 * 6 / 8
+
+
+def test_a_recording_that_judged_nothing_still_lists_every_trial_it_did_not_judge() -> None:
+    request, result = load("none-judged")
+    check = reported(result, "recording")
+    assert check["applicable"] is False and "percentage" not in check and "limits" not in check
+    assert check["findings"] == [] and check["success"] is True
+    assert [i["reason"] for i in check["not_checked"]] == ["not-present", "not-present"]
+    assert {i["trial_id"] for i in check["not_checked"]} == {
+        t["id"] for t in request["integrity"]["trials"]
+    }
+    matches_rules(check, recording(request["integrity"]))
+    run = result["integrity"]["run"]
+    assert run["success"] is False and run["test_system_status"] == "ERROR"
+
+
+def test_version_1_0_0_still_judges_a_file_with_no_valid_footer() -> None:
+    """The old rule, kept for 1.0.0 results: mcap-incomplete, and no not_checked."""
+    request, _ = load("clean")
+    payload = json.loads(json.dumps(request["integrity"]))
+    payload["evidence"]["recording"]["trials"][0]["mcap"]["state"] = "incomplete"
+    old = recording(payload, "1.0.0")
+    assert [i["category"] for i in old["findings"]] == ["mcap-incomplete"]
+    assert "not_checked" not in old and old["percentage"] == 50
+    new = recording(payload)
+    assert new["findings"] == [] and new["percentage"] == 100
+    assert new["not_checked"] == [{"trial_id": "trial-01", "reason": "not-present"}]
+
+
+def test_a_1_1_0_recording_check_never_reports_mcap_incomplete() -> None:
+    check = {
+        "id": "recording",
+        "version": "1.1.0",
+        "applicable": True,
+        "success": False,
+        "percentage": 0,
+        "limits": {"max_gap_seconds": 0.1},
+        "findings": [
+            {
+                "category": "mcap-incomplete",
+                "classification": "test_system",
+                "summary": "The recording does not open or has no valid footer and summary.",
+                "trial_id": "trial-01",
+            }
+        ],
+        "not_checked": [],
+    }
+    assert_invalid(SCHEMA, check)
+    old = {k: v for k, v in check.items() if k != "not_checked"}
+    assert_valid(SCHEMA, {**old, "version": "1.0.0"})
 
 
 def test_a_present_recording_the_evidence_has_no_entry_for_was_never_read() -> None:
@@ -254,6 +328,7 @@ def test_every_recording_judged_means_nothing_is_not_checked() -> None:
     request, result = load("clean")
     assert recording(request["integrity"])["not_checked"] == []
     assert reported(result, "recording").get("not_checked", []) == []
+    assert "not_checked" not in reported(result, "recording")  # clean is a 1.0.0 example
 
 
 def test_no_media_lists_nothing_because_the_whole_check_is_not_applicable() -> None:
