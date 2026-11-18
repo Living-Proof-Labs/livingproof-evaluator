@@ -28,7 +28,7 @@
     {
       "role": "evidence",
       "uri": "evidence.json",
-      "sha256": "f3e3aef870ec20c62bad89738ecaeb5738f139c18217c08c3602a07f817202ad"
+      "sha256": "3d2ae5c15bd9d3c2b35b2ca048a85d297bd928c04dbfebde948e9ecaedbea176"
     }
   ],
   "timestamps": {
@@ -153,7 +153,7 @@
           {
             "id": "trial-02",
             "mcap": {
-              "state": "complete",
+              "state": "incomplete",
               "bytes": 48008,
               "sha256": "2ad309ef7d1c569f7598c1f2cc31ba9b3d0eadaff3b92f47eba7f7d336b8cf3c",
               "channels": []
