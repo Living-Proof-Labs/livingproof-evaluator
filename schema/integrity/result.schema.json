@@ -238,12 +238,36 @@
           "items": {"$ref": "#/$defs/referral"},
           "description": "Only termination reports referrals. A referral names a trial whose ending completeness reports, so that ending is reported once and termination raises no finding of its own for it. A referral is not a finding: it does not change success or percentage."
         },
+        "limits": {
+          "type": "object",
+          "unevaluatedProperties": false,
+          "required": ["max_gap_seconds"],
+          "properties": {
+            "max_gap_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "The longest allowed gap between consecutive messages on a channel, as declared in evidence.recording.max_gap_seconds."
+            }
+          },
+          "description": "Only recording reports limits, and only when it is applicable. It states the limit the check judged against. The limit is declared in the evidence and is not fixed by the contract, so the result says which one was used."
+        },
         "verdict": false,
         "grade": false,
         "pass": false,
         "fail": false
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "id": {"const": "recording"},
+              "applicable": {"const": true}
+            },
+            "required": ["id", "applicable"]
+          },
+          "then": {"required": ["limits"]},
+          "else": {"properties": {"limits": false}}
+        },
         {
           "if": {
             "properties": {"id": {"const": "termination"}},

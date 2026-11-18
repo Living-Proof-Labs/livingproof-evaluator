@@ -63,6 +63,9 @@
         "applicable": true,
         "success": true,
         "percentage": 100.0,
+        "limits": {
+          "max_gap_seconds": 0.1
+        },
         "findings": []
       }
     ]

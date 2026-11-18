@@ -280,6 +280,7 @@ def recording(payload: dict[str, Any]) -> dict[str, Any] | None:
     return {
         "applicable": True,
         "percentage": _share(judged - len(failing), judged),
+        "limits": {"max_gap_seconds": evidence["max_gap_seconds"]},
         "findings": findings,
     }
 
@@ -300,6 +301,7 @@ def matches_rules(check: dict[str, Any], expected: dict[str, Any]) -> None:
     assert check["findings"] == expected["findings"]
     if "referrals" in expected:
         assert check["referrals"] == expected["referrals"]
+    assert check.get("limits") == expected.get("limits")
     assert check["success"] is (not expected["findings"])
 
 

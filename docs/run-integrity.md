@@ -92,6 +92,7 @@ For a trial that ended on its own (termination `completed`), the check reports:
 - Only trials whose recording `completeness` reports as present are judged. A missing, truncated, or empty recording stays a `completeness` finding.
 - Without media (`media_available` is `false`, with no trials) the check is not applicable, not an error.
 - The check judges structure, channels, and time. It does not judge what the recorded motion means, and the channel list and the gap limit are declared in the evidence and are not part of the check version.
+- The result states the limit it used: `limits.max_gap_seconds`, always equal to `evidence.recording.max_gap_seconds`. It is required whenever the check is applicable and absent when it is not. `limits` is only allowed on `recording`. The limit in the example data is a proposal that has not been approved.
 
 `success` and `percentage` follow the rule for every check: a check with a finding has `success` false, and a not-applicable check has no percentage. Not-checked subjects on a check and the denominator for the existing checks are a separate change, tracked in [livingproof-evaluator#34](https://github.com/Living-Proof-Labs/livingproof-evaluator/issues/34).
 
@@ -124,7 +125,7 @@ A consumer of major version 1 accepts any format `livingproof-evaluator-result/1
 3. Add the example under `examples/integrity/<id>/` as `request.json` and `result.json`.
 4. Add `tests/integrity/test_<id>.py` with the assertions for that rule.
 
-The other check schemas, fixtures, and tests stay as they are. Evidence for the new check goes under `evidence.<id>`. A check that needs a new finding field, or a pin subject outside the five names, edits the shared finding definition in `schema/integrity/result.schema.json`. `referrals` is the one check-level field that is not a finding: the shared check definition allows it on `termination` only. The category text must not contain the verdict words `pass`, `fail`, `verdict`, `grade`, or `success`.
+The other check schemas, fixtures, and tests stay as they are. Evidence for the new check goes under `evidence.<id>`. A check that needs a new finding field, or a pin subject outside the five names, edits the shared finding definition in `schema/integrity/result.schema.json`. `referrals` and `limits` are the check-level fields that are not findings: the shared check definition allows `referrals` on `termination` only, and `limits` on `recording` only, when it is applicable. The category text must not contain the verdict words `pass`, `fail`, `verdict`, `grade`, or `success`.
 
 ## Where the implementation should live
 

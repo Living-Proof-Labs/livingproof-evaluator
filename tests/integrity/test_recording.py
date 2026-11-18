@@ -12,6 +12,7 @@ from support import (
     SCHEMA_ROOT,
     assert_invalid,
     assert_valid,
+    check_registry,
     load_json,
     result_schema,
 )
@@ -134,3 +135,94 @@ def test_a_robot_verdict_has_no_field_to_occupy() -> None:
     unknown_category = json.loads(json.dumps(result))
     reported(unknown_category, "recording")["findings"][0]["category"] = "robot-fell"
     assert_invalid(result_schema(), unknown_category)
+
+
+def test_the_result_states_the_gap_limit_it_used() -> None:
+    for name in ("clean", "findings"):
+        request, result = load(name)
+        check = reported(result, "recording")
+        declared = request["integrity"]["evidence"]["recording"]["max_gap_seconds"]
+        assert check["limits"] == {"max_gap_seconds": declared}, name
+        assert recording(request["integrity"])["limits"] == {"max_gap_seconds": declared}, name
+        assert_valid(result_schema(), result)
+
+
+def test_changing_the_evidence_limit_changes_the_stated_limit() -> None:
+    request, _ = load("clean")
+    for limit in (0.05, 0.1, 2):
+        payload = json.loads(json.dumps(request["integrity"]))
+        payload["evidence"]["recording"]["max_gap_seconds"] = limit
+        assert recording(payload)["limits"] == {"max_gap_seconds": limit}
+    # The stated limit is the one that was judged against: 0.01 s is below the 0.02 s gaps.
+    strict = json.loads(json.dumps(request["integrity"]))
+    strict["evidence"]["recording"]["max_gap_seconds"] = 0.01
+    result = recording(strict)
+    assert result["limits"] == {"max_gap_seconds": 0.01}
+    assert {item["category"] for item in result["findings"]} == {"message-gap-exceeded"}
+
+
+def test_an_example_whose_stated_limit_differs_from_the_evidence_is_caught() -> None:
+    request, result = load("clean")
+    doctored = json.loads(json.dumps(result))
+    reported(doctored, "recording")["limits"]["max_gap_seconds"] = 0.2
+    # The schema alone cannot compare it with the evidence, so the reference rules do.
+    assert_valid(result_schema(), doctored)
+    try:
+        matches_rules(reported(doctored, "recording"), recording(request["integrity"]))
+    except AssertionError:
+        return
+    raise AssertionError("a stated limit that differs from the evidence was accepted")
+
+
+def test_the_schema_requires_the_limit_when_recording_is_applicable() -> None:
+    for name in ("clean", "findings"):
+        _, result = load(name)
+        assert_valid(result_schema(), result)
+        missing = json.loads(json.dumps(result))
+        del reported(missing, "recording")["limits"]
+        assert_invalid(result_schema(), missing)
+        empty = json.loads(json.dumps(result))
+        reported(empty, "recording")["limits"] = {}
+        assert_invalid(result_schema(), empty)
+        for bad in (0, -0.1, "0.1", None):
+            wrong = json.loads(json.dumps(result))
+            reported(wrong, "recording")["limits"]["max_gap_seconds"] = bad
+            assert_invalid(result_schema(), wrong)
+        extra = json.loads(json.dumps(result))
+        reported(extra, "recording")["limits"]["max_channel_count"] = 2
+        assert_invalid(result_schema(), extra)
+
+
+def test_the_schema_refuses_limits_on_every_other_check() -> None:
+    limits = {"max_gap_seconds": 0.1}
+    refused = 0
+    for entry in check_registry():
+        if entry["id"] == "recording":
+            continue
+        for path in sorted((ROOT / entry["examples"][0]).glob("result.json")):
+            result = load_json(path)
+            assert_valid(result_schema(), result)
+            doctored = json.loads(json.dumps(result))
+            reported(doctored, entry["id"])["limits"] = limits
+            assert_invalid(result_schema(), doctored)
+            refused += 1
+    assert refused == len(check_registry()) - 1
+
+
+def test_a_check_that_is_not_applicable_states_no_limit() -> None:
+    request, result = load("no-media")
+    check = reported(result, "recording")
+    assert check["applicable"] is False
+    assert "limits" not in check
+    assert "limits" not in recording(request["integrity"])
+    assert_valid(result_schema(), result)
+    doctored = json.loads(json.dumps(result))
+    reported(doctored, "recording")["limits"] = {"max_gap_seconds": 0.1}
+    assert_invalid(result_schema(), doctored)
+
+
+def test_the_contract_fixes_no_gap_limit_in_the_limits_field() -> None:
+    integrity = load_json(SCHEMA_ROOT / "integrity" / "result.schema.json")
+    limits = integrity["$defs"]["check"]["properties"]["limits"]
+    assert "const" not in limits["properties"]["max_gap_seconds"]
+    assert "enum" not in limits["properties"]["max_gap_seconds"]
