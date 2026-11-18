@@ -71,15 +71,17 @@ def _on_body(text: str) -> str:
     return match.group("body")
 
 
-def test_release_workflow_triggers_only_on_push_to_main() -> None:
-    assert RELEASE.is_file()
+def test_release_workflow_triggers_only_after_verify() -> None:
     text = _text(RELEASE)
-    assert _on_body(text) == "  push:\n    branches: [main]\n"
-    for trigger in ("pull_request:", "workflow_dispatch:", "workflow_run:", "schedule:"):
-        assert trigger not in text
+    assert _on_body(text) == (
+        "  workflow_run:\n    workflows: [Verify]\n    types: [completed]\n    branches: [main]\n"
+    )
+    assert "name: Verify\n" in _text(VERIFY)
     release = _job(text, "release")
-    assert "needs: verify\n" in release
-    assert "if: github.event_name == 'push' && github.ref == 'refs/heads/main'\n" in release
+    assert "needs:" not in release
+    assert "steps:" not in release
+    assert "concurrency:" not in text
+    assert "cancel-in-progress:" not in text
 
 
 def _guidelines_pins(text: str) -> list[tuple[str, str]]:
@@ -145,37 +147,24 @@ def test_release_workflow_permissions_match_the_caller_set() -> None:
     blocks = _permission_blocks(_text(RELEASE))
     assert blocks == [
         {"contents": "read"},
-        {"contents": "read", "checks": "write"},
         {"contents": "write"},
     ]
 
 
-def test_verify_runs_on_main_once_through_release() -> None:
+def test_verify_runs_on_main_once_without_cancelling_main_runs() -> None:
     verify = _text(VERIFY)
-    assert _on_body(verify) == "  pull_request:\n  workflow_call:\n"
-    assert "push:" not in _on_body(verify)
+    assert _on_body(verify) == "  pull_request:\n  push:\n    branches: [main]\n"
+    assert "workflow_call:" not in verify
     assert "workflow_run:" not in verify
-
-    release = _text(RELEASE)
-    assert _on_body(release) == "  push:\n    branches: [main]\n"
-    assert "workflow_run:" not in release
-    calls = re.findall(
-        r"^    uses: \./\.github/workflows/verify\.yml\s*$",
-        release,
-        re.MULTILINE,
-    )
-    assert calls == ["    uses: ./.github/workflows/verify.yml"]
-
-    contract = re.compile(r"(?m)^[ \t]*- run: task verify\s*$")
-    caller = re.compile(r"(?m)^[ \t]*uses: \./\.github/workflows/verify\.yml\s*$")
+    assert "group: verify-${{ github.event.pull_request.number || github.run_id }}" in verify
+    assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in verify
     workflows = ROOT / ".github" / "workflows"
     for path in sorted(workflows.glob("*.yml")):
-        if path.name in {"release.yml", "manual.yml"}:
+        if path == VERIFY:
             continue
         text = path.read_text()
-        pushes_main = bool(re.search(r"(?m)^  push:\n    branches: \[main\]\n", _on_body(text)))
-        runs_contract = bool(caller.search(text) or contract.search(text))
-        assert not (pushes_main and runs_contract)
+        assert "uses: ./.github/workflows/verify.yml" not in text
+        assert "- run: task verify" not in text
 
 
 def test_verify_permissions_are_unchanged() -> None:
