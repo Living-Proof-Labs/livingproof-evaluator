@@ -314,8 +314,9 @@ def recording(payload: dict[str, Any], version: str = "1.2.0") -> dict[str, Any]
     1.1.0 leaves a file with no valid footer to completeness, as a ``truncated`` recording, so
     this check does not judge it and does not emit ``mcap-incomplete``. It does not emit
     ``recording-over-limit``. A present trial whose evidence says ``incomplete`` raises
-    ``MalformedRequest``. Every trial it did not judge is listed in ``not_checked``, also when
-    it judged nothing. 1.0.0, the old rule, judged such a file, emitted ``mcap-incomplete``
+    ``MalformedRequest``. From 1.1.0, an evidence trial not in ``trials`` or an unknown
+    or missing ``mcap.state`` also raises ``MalformedRequest``. Every trial it did not judge
+    is listed in ``not_checked``, also when it judged nothing. 1.0.0, the old rule, judged such a file, emitted ``mcap-incomplete``
     and had no ``not_checked``."""
     evidence = payload.get("evidence", {}).get("recording")
     if evidence is None:
@@ -325,19 +326,40 @@ def recording(payload: dict[str, Any], version: str = "1.2.0") -> dict[str, Any]
     if not evidence["media_available"]:
         # The whole check is not applicable, so there is no trial to list.
         return {**_not_applicable(), "not_checked": []} if new else _not_applicable()
-    present = {
-        trial["id"] for trial in payload["trials"] if trial["recording"]["state"] == "present"
-    }
+    trial_states = {trial["id"]: trial["recording"]["state"] for trial in payload["trials"]}
+    present = {trial_id for trial_id, state in trial_states.items() if state == "present"}
     if new:
-        # A present trial whose evidence says the file is incomplete is inconsistent. The producer
-        # classifies a file with no valid footer as truncated while reading, and completeness
-        # reports it. Listing it as not-present would leave nothing reporting it, so fail closed.
+        # Fail closed on inconsistent or malformed recording evidence: an evidence entry for an
+        # unknown trial, a missing or unknown mcap.state, or a present trial whose evidence says
+        # incomplete (unless 1.2.0 over_limit explains why the reader stopped).
         for entry in evidence["trials"]:
-            if entry["id"] in present and entry["mcap"]["state"] != "complete":
+            trial_id = entry["id"]
+            mcap = entry.get("mcap")
+            has_state = isinstance(mcap, dict) and "state" in mcap
+            mcap_state = mcap["state"] if has_state else None
+            state_desc = repr(mcap_state) if has_state else "missing"
+            if trial_id not in trial_states:
+                raise MalformedRequest(
+                    f"trial {trial_id}: evidence.recording has an entry (mcap.state is"
+                    f" {state_desc}) for a trial that is not in trials."
+                )
+            recording_state = trial_states[trial_id]
+            if not has_state:
+                raise MalformedRequest(
+                    f"trial {trial_id}: evidence.recording mcap.state is missing"
+                    f" (recording.state is {recording_state})."
+                )
+            if mcap_state not in ("complete", "incomplete"):
+                raise MalformedRequest(
+                    f"trial {trial_id}: recording.state is {recording_state} and"
+                    f" evidence.recording mcap.state is {state_desc},"
+                    " which is not a known state."
+                )
+            if trial_id in present and mcap_state == "incomplete":
                 if v12 and "over_limit" in entry:
                     continue
                 raise MalformedRequest(
-                    f"trial {entry['id']}: recording.state is present but evidence.recording"
+                    f"trial {trial_id}: recording.state is present but evidence.recording"
                     " says the file is incomplete. A file with no valid footer is truncated:"
                     " classify it as truncated."
                 )
