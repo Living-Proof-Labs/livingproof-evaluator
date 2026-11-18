@@ -128,21 +128,23 @@ def test_the_rule_rejects_exactly_the_inconsistent_inputs() -> None:
             integrity_rules.recording(payload)
 
 
+@pytest.mark.parametrize("bad_state", ["garbled", None])
 @pytest.mark.parametrize("recording_state", ["present", "missing", "truncated", "empty"])
 def test_an_unknown_mcap_state_is_rejected_and_names_the_actual_state(
-    recording_state: str,
+    recording_state: str, bad_state: str | None
 ) -> None:
     payload = clean()
     _set_recording_state(payload, 0, recording_state)
-    payload["evidence"]["recording"]["trials"][0]["mcap"]["state"] = "garbled"
+    payload["evidence"]["recording"]["trials"][0]["mcap"]["state"] = bad_state
     assert_invalid(RECORDING_SCHEMA["$defs"]["evidence"], payload["evidence"]["recording"])
     with pytest.raises(integrity_rules.MalformedRequest) as raised:
         integrity_rules.recording(payload)
     message = str(raised.value)
     assert "trial-01" in message
-    assert "garbled" in message
+    assert repr(bad_state) in message
     assert recording_state in message
     assert "incomplete" not in message
+    assert "missing" not in message.replace(f"recording.state is {recording_state}", "")
     old = integrity_rules.recording(payload, "1.0.0")
     if recording_state == "present":
         assert [i["category"] for i in old["findings"]] == ["mcap-incomplete"]
@@ -219,4 +221,5 @@ def test_the_schema_and_docs_say_the_request_is_rejected() -> None:
     assert "malformed" in schema["description"] and "not in trials" in schema["description"]
     assert "MalformedRequest" in DOC and "no result" in DOC and "status 2" in DOC
     assert "not in `trials`" in DOC
+    assert "is not `complete` or `incomplete`" in DOC and "instead of a `KeyError`" in DOC
     assert "not judged either" not in DOC  # the earlier, silent reading

@@ -309,15 +309,16 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
         for entry in evidence["trials"]:
             trial_id = entry["id"]
             mcap = entry.get("mcap")
-            mcap_state = mcap.get("state") if isinstance(mcap, dict) else None
+            has_state = isinstance(mcap, dict) and "state" in mcap
+            mcap_state = mcap["state"] if has_state else None
+            state_desc = repr(mcap_state) if has_state else "missing"
             if trial_id not in trial_states:
-                state_desc = repr(mcap_state) if mcap_state is not None else "missing"
                 raise MalformedRequest(
                     f"trial {trial_id}: evidence.recording has an entry (mcap.state is"
                     f" {state_desc}) for a trial that is not in trials."
                 )
             recording_state = trial_states[trial_id]
-            if not isinstance(mcap, dict) or "state" not in mcap or mcap_state is None:
+            if not has_state:
                 raise MalformedRequest(
                     f"trial {trial_id}: evidence.recording mcap.state is missing"
                     f" (recording.state is {recording_state})."
@@ -325,7 +326,7 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
             if mcap_state not in ("complete", "incomplete"):
                 raise MalformedRequest(
                     f"trial {trial_id}: recording.state is {recording_state} and"
-                    f" evidence.recording mcap.state is {mcap_state!r},"
+                    f" evidence.recording mcap.state is {state_desc},"
                     " which is not a known state."
                 )
             if trial_id in present and mcap_state == "incomplete":

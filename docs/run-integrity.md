@@ -173,6 +173,7 @@ The request schema cannot say these rules, because the two facts sit in differen
 | --- | --- | --- |
 | `recording` | 1.1.0 | A trial whose `recording.state` is `present` while `evidence.recording` says its MCAP file is `incomplete`. A file with no valid footer is `truncated`, which the producer sets while reading and `completeness` reports. Listing the trial as `not-present` would leave nothing reporting it. |
 | `recording` | 1.1.0 | An `evidence.recording.trials` entry whose `id` is not in `trials`. Silently ignoring it would drop evidence for an unknown trial. |
+| `recording` | 1.1.0 | An `evidence.recording.trials` entry whose `mcap.state` is missing, or is not `complete` or `incomplete`. The request schema rejects these first. The reference rule raises `MalformedRequest` as well, naming the trial and the actual state (`missing` when the key is absent), instead of a `KeyError` or a message that calls the file incomplete. |
 
 `recording` 1.0.0 keeps its published behaviour: the same request is judged and gives `mcap-incomplete`, and an evidence entry for a trial not in `trials` is ignored. So the published 1.0.0 `recording/findings` request is valid and is judged at 1.0.0, and an evaluator at 1.1.0 rejects it. One inconsistent trial rejects the whole request. An `incomplete` entry for a trial in `trials` that is `missing`, `truncated` or `empty` is not inconsistent: the trial is not present, so the entry is not read.
 
