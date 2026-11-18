@@ -28,7 +28,7 @@
     {
       "role": "evidence",
       "uri": "evidence.json",
-      "sha256": "0b54c21edfbc0a68dd1e3f294349c0465a87436e25edc862750a72bfb4d00ca7"
+      "sha256": "df85d379d7d271a15e8da919b6453af7bf227ff2bef0a2c4dbe6925e1d223900"
     }
   ],
   "timestamps": {
@@ -88,27 +88,12 @@
       },
       {
         "id": "trial-absent-file",
-        "test_system_status": "ERROR",
-        "success": false,
-        "percentage": 0
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
       }
     ],
     "checks": [
-      {
-        "id": "completeness",
-        "version": "1.1.0",
-        "applicable": true,
-        "success": false,
-        "percentage": 87.5,
-        "findings": [
-          {
-            "category": "missing-recording",
-            "classification": "test_system",
-            "summary": "Trial trial-absent-file has no recording.",
-            "trial_id": "trial-absent-file"
-          }
-        ]
-      },
       {
         "id": "recording",
         "version": "1.0.0",
@@ -154,12 +139,6 @@
             "classification": "test_system",
             "summary": "The observation_sha256 in media.json differs from the run evidence.",
             "trial_id": "trial-link"
-          }
-        ],
-        "not_checked": [
-          {
-            "trial_id": "trial-absent-file",
-            "reason": "not-present"
           }
         ]
       }

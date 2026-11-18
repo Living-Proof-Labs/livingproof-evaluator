@@ -1,0 +1,127 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "763b30e4de9c72dd716d356b8181ff05d3afb1299ecef72d365dbf628a508b15"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "4aca77d453336ddf20c5ff1106bb49dc14599db399249e79c8529dfa5ef69508"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "b6defd3d0fa7ce1f8e3c6d910ba12ee47b6895d6c76a0c42f16c0f743aabad15"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-18T10:20:00Z"
+  },
+  "integrity": {
+    "manifest": {
+      "id": "example-recording-none-judged",
+      "deterministic": true,
+      "environment": "simulation",
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      },
+      "planned_trials": [
+        {
+          "id": "trial-01"
+        },
+        {
+          "id": "trial-02"
+        }
+      ],
+      "robot_determinism": "deterministic"
+    },
+    "lock": {
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      }
+    },
+    "trials": [
+      {
+        "id": "trial-01",
+        "input_sha256": "11fc186251e2d208abe1cd65f62793124a8846d9ebc82bcb50409032cb21d079",
+        "recording": {
+          "state": "missing"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-02",
+        "input_sha256": "51d210b7ac7e1a9b84c3c65beb3ff6e07028d62f6bde79638e9643ef824c0c8d",
+        "recording": {
+          "state": "truncated",
+          "sha256": "d5dc5bc06ac3f3e6b37cfb393a5da94da023fbd6ecd014db90e4fc100bc3918a"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      }
+    ],
+    "evidence": {
+      "recording": {
+        "media_available": true,
+        "required_channels": [
+          "/base_pose",
+          "/joint_states"
+        ],
+        "max_gap_seconds": 0.1,
+        "trials": []
+      }
+    }
+  }
+}

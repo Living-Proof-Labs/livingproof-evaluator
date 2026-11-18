@@ -23,7 +23,7 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": {"$ref": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/termination.schema.json#/$defs/stop_reason"},
-          "description": "The stop reasons the run's plan allows."
+          "description": "The stop reasons the run's plan allows. From termination 1.1.0, simulation-broken in this list is accepted and ignored: it is never allowed, whatever the plan lists. Version 1.0.0 honoured it."
         },
         "trials": {
           "type": "array",

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/checks/plan-conformance.schema.json",
-  "title": "plan-conformance 1.0.0",
-  "description": "The trials that ran are the trials that were planned. The plan trial count, trials.count, the number of trials.results entries, and the lock's plan trial count agree. The plan command_speed matches the lock's. trials.results[].index is exactly 1 to N, with no duplicate, missing, or out-of-range index, and each path is trials/trial-NN.json for its own index. A run whose preconditions are unmet runs no trials, and the check is not applicable. A missing or hash-mismatched trial file stays a completeness finding, so this check reports count and index disagreements only and its findings carry no trial id. When the lock block is absent, the lock comparisons are not made, are not counted, and are listed in not_checked as lock-trial-count and lock-command-speed with reason not-declared. A lock that has no command_speed lists lock-command-speed only. A plan with no command_speed also leaves that comparison out and lists it. not_checked is optional. percentage is 100 times the number of subjects without a finding divided by the number of subjects. The subjects are the comparisons that were made, one per index 1 to N, and one per result entry whose index is outside 1 to N. Evidence for this check is evidence['plan-conformance'].",
+  "title": "plan-conformance 1.1.0",
+  "description": "The trials that ran are the trials that were planned. The plan trial count, trials.count, the number of trials.results entries, and the lock's plan trial count agree. The plan command_speed matches the lock's. trials.results[].index is exactly 1 to N, with no duplicate, missing, or out-of-range index, and each path is trials/trial-NN.json for its own index. A run whose preconditions are unmet runs no trials, and the check is not applicable. A missing or hash-mismatched trial file stays a completeness finding, so this check reports count and index disagreements only and its findings carry no trial id. When the lock block is absent, the lock comparisons are not made, are not counted, and are listed in not_checked as lock-trial-count and lock-command-speed with reason not-declared. A lock that has no command_speed lists lock-command-speed only. A plan with no command_speed also leaves that comparison out and lists it. Version 1.1.0 requires not_checked, and an empty list means every comparison was made, also when the check is not applicable. Version 1.0.0, which stays valid, has no not_checked. percentage is 100 times the number of subjects without a finding divided by the number of subjects. The subjects are the comparisons that were made, one per index 1 to N, and one per result entry whose index is outside 1 to N. Evidence for this check is evidence['plan-conformance'].",
   "$defs": {
     "plan": {
       "type": "object",
@@ -67,9 +67,15 @@
     }
   ],
   "unevaluatedProperties": false,
+  "if": {
+    "properties": {"version": {"const": "1.0.0"}},
+    "required": ["version"]
+  },
+  "then": {"properties": {"not_checked": false}},
+  "else": {"required": ["not_checked"]},
   "properties": {
     "id": {"const": "plan-conformance"},
-    "version": {"const": "1.0.0"},
+    "version": {"enum": ["1.0.0", "1.1.0"]},
     "not_checked": {
       "items": {
         "required": ["subject"],

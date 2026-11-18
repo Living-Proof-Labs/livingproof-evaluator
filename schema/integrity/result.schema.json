@@ -198,7 +198,7 @@
         },
         "reason": {
           "enum": ["not-recorded", "not-declared", "not-present"],
-          "description": "not-recorded: the run's own record has no value to compare. not-declared: the plan or the lock has no value to compare with. not-present: the thing to read does not exist, and another check reports that."
+          "description": "not-recorded: the run's own record has no value to compare. not-declared: the plan or the lock has no value to compare with. not-present: there is no readable recording, because it is missing, truncated or empty (a file with no valid footer is truncated), and completeness reports that."
         }
       },
       "oneOf": [
@@ -266,7 +266,7 @@
           "type": "array",
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/not_checked"},
-          "description": "Subjects this check could not check, each with the reason. A not-checked subject is not in the denominator of percentage and is not a finding. Only pins, plan-conformance, and recording report it. Optional for the check versions that existed before it, and required on pins 1.1.0 onward."
+          "description": "Subjects this check could not check, each with the reason. A not-checked subject is not in the denominator of percentage and is not a finding. Only pins, plan-conformance, and recording report it. It is required from version 1.1.0 of each of the three, where an empty list means every subject was checked, and it is not allowed at their 1.0.0."
         },
         "limits": {
           "type": "object",

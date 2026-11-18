@@ -91,6 +91,7 @@ def test_the_shared_check_definition_has_an_optional_not_checked_list() -> None:
 )
 def test_a_not_checked_pin_subject_is_valid(item: dict) -> None:
     check = minimal("pins", "1.1.0")
+    check.update(applicable=True, percentage=100)
     check["not_checked"] = [item]
     assert_valid(schema_for("pins"), check)
 
@@ -112,12 +113,14 @@ def test_a_not_checked_pin_subject_is_valid(item: dict) -> None:
 )
 def test_a_malformed_not_checked_item_is_rejected_on_pins(item: dict) -> None:
     check = minimal("pins", "1.1.0")
+    check.update(applicable=True, percentage=100)
     check["not_checked"] = [item]
     assert_invalid(schema_for("pins"), check)
 
 
 def test_the_same_subject_cannot_be_listed_twice() -> None:
     check = minimal("pins", "1.1.0")
+    check.update(applicable=True, percentage=100)
     check["not_checked"] = [
         {"subject": "specs", "reason": "not-recorded"},
         {"subject": "specs", "reason": "not-recorded"},
@@ -303,14 +306,7 @@ def test_the_registry_names_the_current_version_and_the_ones_that_stay_valid() -
 def test_version_1_0_0_results_are_still_valid(check_id: str) -> None:
     old = minimal(check_id, "1.0.0")
     assert_valid(schema_for(check_id), old)
-    assert_valid(
-        schema_for(check_id),
-        {
-            **old,
-            "version": LATEST[check_id][0],
-            **({"not_checked": []} if check_id in REPORTS_NOT_CHECKED else {}),
-        },
-    )
+    assert_valid(schema_for(check_id), minimal(check_id, LATEST[check_id][0]))
     assert_invalid(schema_for(check_id), {**old, "version": "1.2.0"})
 
 

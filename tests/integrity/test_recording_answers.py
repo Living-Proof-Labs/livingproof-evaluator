@@ -163,7 +163,7 @@ def test_a_recording_that_was_not_judged_is_always_a_completeness_finding() -> N
         }
         assert set(skipped) <= found, example
         assert result["integrity"]["run"]["success"] is False, example
-    assert seen >= 4
+    assert seen >= 3
 
 
 def test_a_recording_problem_is_reported_by_one_check_only() -> None:

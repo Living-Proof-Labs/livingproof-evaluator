@@ -1,0 +1,184 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "b7649d7df56191a5002faca88fc57c65fe3c261439c8c2ca0a64246db02f5d50"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "4ac08262769c5458321d98c0435855e897ce07bdc91566ff7e647687756f38c4"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "da5d834a58f858bc469e1eda123262ec748a010ca230a3ea030e1064e621ace9"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-18T10:00:00Z"
+  },
+  "integrity": {
+    "manifest": {
+      "id": "example-plan-conformance-lock-checked",
+      "deterministic": true,
+      "environment": "simulation",
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      },
+      "planned_trials": [
+        {
+          "id": "trial-01"
+        },
+        {
+          "id": "trial-02"
+        },
+        {
+          "id": "trial-03"
+        },
+        {
+          "id": "trial-04"
+        }
+      ],
+      "robot_determinism": "deterministic"
+    },
+    "lock": {
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      }
+    },
+    "trials": [
+      {
+        "id": "trial-01",
+        "input_sha256": "11fc186251e2d208abe1cd65f62793124a8846d9ebc82bcb50409032cb21d079",
+        "recording": {
+          "state": "present",
+          "sha256": "ce81546b5963d3aa92f4a087513a5275c9fa0a5283e307fb85efe0acb70804ec"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-02",
+        "input_sha256": "51d210b7ac7e1a9b84c3c65beb3ff6e07028d62f6bde79638e9643ef824c0c8d",
+        "recording": {
+          "state": "present",
+          "sha256": "d5dc5bc06ac3f3e6b37cfb393a5da94da023fbd6ecd014db90e4fc100bc3918a"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-03",
+        "input_sha256": "7c07784f3646ab9700eb2ea2724b480041d051d5a370d3e2fc50a19731b1efc3",
+        "recording": {
+          "state": "present",
+          "sha256": "84a7df617336dfb351586befd5bdb3b4470d98b1bc36a5d65614c02cc9b5a89e"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-04",
+        "input_sha256": "551c15e0e9c55979c53f1cfb7112e2ae1756758475658ebeb72a660238dcc023",
+        "recording": {
+          "state": "present",
+          "sha256": "80b1da08a2645bd370c1e47e93752cb9129122d3c81a10d2522b9b5512042cbd"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      }
+    ],
+    "evidence": {
+      "plan-conformance": {
+        "plan": {
+          "trial_count": 4,
+          "command_speed": 1.0
+        },
+        "trials": {
+          "count": 4,
+          "results": [
+            {
+              "index": 1,
+              "path": "trials/trial-01.json"
+            },
+            {
+              "index": 2,
+              "path": "trials/trial-02.json"
+            },
+            {
+              "index": 3,
+              "path": "trials/trial-03.json"
+            },
+            {
+              "index": 4,
+              "path": "trials/trial-04.json"
+            }
+          ]
+        },
+        "lock": {
+          "plan": {
+            "trial_count": 4,
+            "command_speed": 1.0
+          }
+        }
+      }
+    }
+  }
+}

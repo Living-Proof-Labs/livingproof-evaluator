@@ -1,0 +1,386 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "cd6bef765eadb77256c48f33712600e5cbef0984f822a2192aaac931b53feca1"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "505da5c25c658b7e71c5eb2ebb30711f16b4115424e8d66c2aaafb2bed9e80df"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "2d82f29c9c5ce31b52f1b53d64c030dd38a6412e1fa9dc6aa2ed0e9758ffe94c"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-18T10:10:00Z"
+  },
+  "integrity": {
+    "manifest": {
+      "id": "example-recording-not-checked",
+      "deterministic": true,
+      "environment": "simulation",
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      },
+      "planned_trials": [
+        {
+          "id": "trial-usable"
+        },
+        {
+          "id": "trial-incomplete"
+        },
+        {
+          "id": "trial-channel"
+        },
+        {
+          "id": "trial-backwards"
+        },
+        {
+          "id": "trial-gap"
+        },
+        {
+          "id": "trial-file-mismatch"
+        },
+        {
+          "id": "trial-link"
+        },
+        {
+          "id": "trial-absent-file"
+        }
+      ],
+      "robot_determinism": "deterministic"
+    },
+    "lock": {
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      }
+    },
+    "trials": [
+      {
+        "id": "trial-usable",
+        "input_sha256": "18e5149548871f008c9a016fbfdc9f379a4d463d01882ffde5bf3f68f7923ae9",
+        "recording": {
+          "state": "present",
+          "sha256": "946402bc75d0b12afe77b2a9ea781e8194b8a7f9259a420da7a1110019955538"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-incomplete",
+        "input_sha256": "c79c9664364795b94a5c41c9d7598614edefb565ced9f409b0744f7cff760c69",
+        "recording": {
+          "state": "truncated",
+          "sha256": "79e746d25e06cb77c1a04cf7869dbd0c409a297d5ba5634f2a1ac2d11bd8080e"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-channel",
+        "input_sha256": "9bce3bbd99267ea0afc19d46fa8cd2dee8b17c2228a9a1534983b50f5f63dcb0",
+        "recording": {
+          "state": "present",
+          "sha256": "09ddd4b8c7739dd2ebfd88ab951269bf9e21cd5477811ac33eb6258b3774afa5"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-backwards",
+        "input_sha256": "6cded3c101f3eea6caa1250021a2ecf803dbd5295911087b91b511ed2c27bdb2",
+        "recording": {
+          "state": "present",
+          "sha256": "31300adf9df630cf4b3e953e9ce19624c384c380eddb7c7565aeea0cb71469d5"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-gap",
+        "input_sha256": "5cdda37045453a454534d660622e3db34b54aba9dd7fb0fa03436c565e42ab62",
+        "recording": {
+          "state": "present",
+          "sha256": "aa5d7985dbcf73b6b3657a088db65a400fcff58b677d41b41c1d937cf50e3a82"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-file-mismatch",
+        "input_sha256": "a29ef34d38ac673ddf00ed9bbfab881a67c5e35c162ebd827caaab60821eec48",
+        "recording": {
+          "state": "present",
+          "sha256": "d9fce68c5b0a61c31c4d23908da70a4802bb0a6771f36f1c182333b5db509f0b"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-link",
+        "input_sha256": "46b4103128167fa16b3ff2c4e30f9a53ca2721cfb1448629c30d65c83ffbe910",
+        "recording": {
+          "state": "present",
+          "sha256": "bb7c60bfb8a2bf16972c1c992350076db2e35c7f07754ef242c034e9ca74ef3c"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-absent-file",
+        "input_sha256": "769abfc9e29e63e56248595cb048ea47126487c12bce71208876059d921ebd25",
+        "recording": {
+          "state": "missing"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      }
+    ],
+    "evidence": {
+      "recording": {
+        "media_available": true,
+        "required_channels": [
+          "/base_pose",
+          "/joint_states"
+        ],
+        "max_gap_seconds": 0.1,
+        "trials": [
+          {
+            "id": "trial-usable",
+            "mcap": {
+              "state": "complete",
+              "bytes": 48012,
+              "sha256": "f409b56e9aa35a4d1149503e4e9ebfceb1d973dabe26e2171840c4e602797a40",
+              "channels": [
+                {
+                  "topic": "/base_pose",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                },
+                {
+                  "topic": "/joint_states",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                }
+              ]
+            },
+            "media": {
+              "mcap_bytes": 48012,
+              "mcap_sha256": "f409b56e9aa35a4d1149503e4e9ebfceb1d973dabe26e2171840c4e602797a40",
+              "observation_sha256": "1f3507a5df72dd79eee3f0ec1220acbd51436a5dbd45e87a1a4f8389f6cd4cf1"
+            },
+            "evidence_observation_sha256": "1f3507a5df72dd79eee3f0ec1220acbd51436a5dbd45e87a1a4f8389f6cd4cf1"
+          },
+          {
+            "id": "trial-channel",
+            "mcap": {
+              "state": "complete",
+              "bytes": 48013,
+              "sha256": "dd3371425ca0ef71f9bca8e189d732234f849c9adfb6a7d7248726c21b7c6342",
+              "channels": [
+                {
+                  "topic": "/base_pose",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                }
+              ]
+            },
+            "media": {
+              "mcap_bytes": 48013,
+              "mcap_sha256": "dd3371425ca0ef71f9bca8e189d732234f849c9adfb6a7d7248726c21b7c6342",
+              "observation_sha256": "79f0acd41e9e23c8a783fc712897a08394abbe9cb67d805905f4e8ba6de6e3f3"
+            },
+            "evidence_observation_sha256": "79f0acd41e9e23c8a783fc712897a08394abbe9cb67d805905f4e8ba6de6e3f3"
+          },
+          {
+            "id": "trial-backwards",
+            "mcap": {
+              "state": "complete",
+              "bytes": 48015,
+              "sha256": "9e3ebff6edeac2ec331a28dc0c82f90dd0c2e62caff01ec4ea324e3cac9fa01b",
+              "channels": [
+                {
+                  "topic": "/base_pose",
+                  "message_count": 500,
+                  "backward_steps": 3,
+                  "max_gap_seconds": 0.02
+                },
+                {
+                  "topic": "/joint_states",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                }
+              ]
+            },
+            "media": {
+              "mcap_bytes": 48015,
+              "mcap_sha256": "9e3ebff6edeac2ec331a28dc0c82f90dd0c2e62caff01ec4ea324e3cac9fa01b",
+              "observation_sha256": "87c868cbb0acc2d602d54d23d2026d7a2fde6a8dd8ab8a47ac6cb8d451a96131"
+            },
+            "evidence_observation_sha256": "87c868cbb0acc2d602d54d23d2026d7a2fde6a8dd8ab8a47ac6cb8d451a96131"
+          },
+          {
+            "id": "trial-gap",
+            "mcap": {
+              "state": "complete",
+              "bytes": 48009,
+              "sha256": "29f2c43779090a681a45ab0acdc8157bdf466e75966ea3cc45dbfaf96fbab7cd",
+              "channels": [
+                {
+                  "topic": "/base_pose",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                },
+                {
+                  "topic": "/joint_states",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.5
+                }
+              ]
+            },
+            "media": {
+              "mcap_bytes": 48009,
+              "mcap_sha256": "29f2c43779090a681a45ab0acdc8157bdf466e75966ea3cc45dbfaf96fbab7cd",
+              "observation_sha256": "188a220dc4254b948c27e54bdec31abe68baba08371b5dd80912be10ade18775"
+            },
+            "evidence_observation_sha256": "188a220dc4254b948c27e54bdec31abe68baba08371b5dd80912be10ade18775"
+          },
+          {
+            "id": "trial-file-mismatch",
+            "mcap": {
+              "state": "complete",
+              "bytes": 48019,
+              "sha256": "1dd6349fb2765a1c394fc2724af8d6a943176fdfa3d8f4a66003540abaf6aaf6",
+              "channels": [
+                {
+                  "topic": "/base_pose",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                },
+                {
+                  "topic": "/joint_states",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                }
+              ]
+            },
+            "media": {
+              "mcap_bytes": 48019,
+              "mcap_sha256": "c8b6dbe159af84daa012cf4ec0b1e0e39abf4fd07f4ad3481e86bca091c2bd6e",
+              "observation_sha256": "c65a3cd3d88a4a91f21fa53697d394bd2573170b43be95ae74a6266a7a999ed0"
+            },
+            "evidence_observation_sha256": "c65a3cd3d88a4a91f21fa53697d394bd2573170b43be95ae74a6266a7a999ed0"
+          },
+          {
+            "id": "trial-link",
+            "mcap": {
+              "state": "complete",
+              "bytes": 48010,
+              "sha256": "a701a5c2af0700902ab25c4ace9aea3245e55a4f0de38eabd9f29797350a9930",
+              "channels": [
+                {
+                  "topic": "/base_pose",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                },
+                {
+                  "topic": "/joint_states",
+                  "message_count": 500,
+                  "backward_steps": 0,
+                  "max_gap_seconds": 0.02
+                }
+              ]
+            },
+            "media": {
+              "mcap_bytes": 48010,
+              "mcap_sha256": "a701a5c2af0700902ab25c4ace9aea3245e55a4f0de38eabd9f29797350a9930",
+              "observation_sha256": "83a706899c3852389fd4435039671f2002db41836da58c28c3aa9ea2f7aeb4af"
+            },
+            "evidence_observation_sha256": "e962ed9d46fb997856c983f6d25d529408d173614fa56bd3a18419d21a220473"
+          }
+        ]
+      }
+    }
+  }
+}

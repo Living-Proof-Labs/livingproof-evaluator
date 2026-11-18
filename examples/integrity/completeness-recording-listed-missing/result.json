@@ -81,7 +81,7 @@
       },
       {
         "id": "recording",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "applicable": true,
         "success": true,
         "percentage": 100.0,
