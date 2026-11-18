@@ -305,6 +305,10 @@ def recording(payload: dict[str, Any]) -> dict[str, Any] | None:
             )
         channels = {channel["topic"]: channel for channel in mcap["channels"]}
         for topic in evidence["required_channels"]:
+            if mcap["state"] != "complete":
+                # A file that is not complete is reported once, as mcap-incomplete. Its channels
+                # are not also reported as missing, so the cause reads clearly.
+                break
             channel = channels.get(topic)
             if channel is None or channel["message_count"] == 0:
                 trial_findings.append(
