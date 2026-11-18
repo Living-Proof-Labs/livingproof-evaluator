@@ -40,6 +40,11 @@ def _finding(category: str, summary: str, trial_id: str | None = None) -> dict[s
     return finding
 
 
+class MalformedRequest(ValueError):
+    """The request is inconsistent, so no check result can be trusted. An evaluator rejects it:
+    it writes no result and exits with status 2, as it does for any other malformed request."""
+
+
 def _not_applicable() -> dict[str, Any]:
     return {"applicable": False, "findings": []}
 
@@ -283,7 +288,8 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
     recording completeness does not report as present are not judged here.
 
     1.1.0 (the default): a file with no valid footer is completeness's, as a ``truncated``
-    recording, so this check does not judge it and does not emit ``mcap-incomplete``. Every trial
+    recording, so this check does not judge it and does not emit ``mcap-incomplete``. A present
+    trial whose evidence says ``incomplete`` is inconsistent and raises ``MalformedRequest``. Every trial
     it did not judge is listed in ``not_checked``, also when it judged nothing. 1.0.0, the old
     rule, judged such a file, emitted ``mcap-incomplete`` and had no ``not_checked``."""
     evidence = payload.get("evidence", {}).get("recording")
@@ -296,14 +302,23 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
     present = {
         trial["id"] for trial in payload["trials"] if trial["recording"]["state"] == "present"
     }
+    if new:
+        # A present trial whose evidence says the file is incomplete is inconsistent. The producer
+        # classifies a file with no valid footer as truncated while reading, and completeness
+        # reports it. Listing it as not-present would leave nothing reporting it, so fail closed.
+        for entry in evidence["trials"]:
+            if entry["id"] in present and entry["mcap"]["state"] != "complete":
+                raise MalformedRequest(
+                    f"trial {entry['id']}: recording.state is present but evidence.recording"
+                    " says the file is incomplete. A file with no valid footer is truncated:"
+                    " classify it as truncated."
+                )
     findings: list[dict[str, Any]] = []
     judged = 0
     failing: set[str] = set()
     for entry in evidence["trials"]:
         trial_id = entry["id"]
         if trial_id not in present:
-            continue
-        if new and entry["mcap"]["state"] != "complete":
             continue
         judged += 1
         trial_findings: list[dict[str, Any]] = []
@@ -379,8 +394,6 @@ def recording(payload: dict[str, Any], version: str = "1.1.0") -> dict[str, Any]
                 not_checked.append({"trial_id": trial["id"], "reason": "not-present"})
             elif entry is None:
                 not_checked.append({"trial_id": trial["id"], "reason": "not-recorded"})
-            elif entry["mcap"]["state"] != "complete":
-                not_checked.append({"trial_id": trial["id"], "reason": "not-present"})
     if not judged:
         return {**_not_applicable(), "not_checked": not_checked} if new else _not_applicable()
     result: dict[str, Any] = {
