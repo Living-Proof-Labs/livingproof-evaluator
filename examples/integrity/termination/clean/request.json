@@ -1,0 +1,181 @@
+{
+  "format": "livingproof-evaluator-request/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "021f2523d49dc48ef420477bd999ee253abbfd4f985acc85fb1227e4b9cbe402"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "cf3866ac6567f88c99605a0c1ec63fe4d2fdea8a221fe58941b493bc32aaba96"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "aa12ed5b63c5ed17f6a22c74e08a900d92ce3397e8b97fb23dfbf655d9a47790"
+    }
+  ],
+  "timestamps": {
+    "requested_at": "2026-11-18T07:00:00Z"
+  },
+  "integrity": {
+    "manifest": {
+      "id": "example-termination",
+      "deterministic": true,
+      "environment": "simulation",
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      },
+      "planned_trials": [
+        {
+          "id": "trial-time-limit"
+        },
+        {
+          "id": "trial-mission-done"
+        },
+        {
+          "id": "trial-left-world"
+        },
+        {
+          "id": "trial-adapter-done"
+        }
+      ],
+      "robot_determinism": "deterministic"
+    },
+    "lock": {
+      "pins": {
+        "specs": {
+          "sha256": "34aeee53cd9bf90485c65af437dd46d2e1dd8b82f6be1972185288a93112349c"
+        },
+        "runner": {
+          "sha256": "cc559931fc00883e1db6c507e2ad286527bde82092fc7ac58db82758cb07957f"
+        },
+        "verifier": {
+          "sha256": "08a15ff2ba25fc5ec1ae15cf0ced86ba84cd29457f60c12ce373ce86dd753d2b"
+        },
+        "world": {
+          "sha256": "199c9493d7c235669af674da5dd42f602aa761b25e9e6b7e67f04c08d9dd78ff"
+        },
+        "configuration": {
+          "sha256": "3edfbe8dc6e6d4861ec4eceabf59503a01639e4eeca77c2a5d49f08993e1c4f7"
+        }
+      }
+    },
+    "trials": [
+      {
+        "id": "trial-time-limit",
+        "input_sha256": "b76a87a6d4d2a0507c261d2b00d0788e68328442620ec012c391f18891c7f013",
+        "recording": {
+          "state": "present",
+          "sha256": "df304a01df0b24330185d356842cdde14b3eb09366aa9133a911c72ad995337c"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "time_limit"
+      },
+      {
+        "id": "trial-mission-done",
+        "input_sha256": "33873e929e633eec5c8d86ce4dff2e4cc98829b7838ddfb0cb228c64c623fc82",
+        "recording": {
+          "state": "present",
+          "sha256": "c0de9b1ab11e0f3c12d6c93095d596a7e407f3415571bc03cf04d3f3091423af"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "crossed_exit"
+      },
+      {
+        "id": "trial-left-world",
+        "input_sha256": "fab141b043f02a69e9ae0bddcb410866dfb4a1d195ae60cbbaf3ef3c3cf123cf",
+        "recording": {
+          "state": "present",
+          "sha256": "c9b325ee39ecaf538b2f7c39a3bb686e3d432b5f46e15dc27d2775b837043e50"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "left_hallway"
+      },
+      {
+        "id": "trial-adapter-done",
+        "input_sha256": "895e36efdf1a1ed1b758eca4ee5f5d501ec60bd7a3c3efb1781978f37eec154c",
+        "recording": {
+          "state": "present",
+          "sha256": "57f885554a746a21b39c00682ee7603e97586877c1acfc0123f01d0511fe98ba"
+        },
+        "observations": {
+          "state": "present"
+        },
+        "termination": "completed",
+        "outcome": "adapter_done"
+      }
+    ],
+    "evidence": {
+      "termination": {
+        "allowed_stop_reasons": [
+          "time-limit",
+          "mission-done",
+          "left-world",
+          "adapter-or-scenario-done"
+        ],
+        "trials": [
+          {
+            "id": "trial-time-limit",
+            "stop_reason": "time-limit",
+            "manifest_stop_reason": "time-limit"
+          },
+          {
+            "id": "trial-mission-done",
+            "stop_reason": "mission-done",
+            "manifest_stop_reason": "mission-done"
+          },
+          {
+            "id": "trial-left-world",
+            "stop_reason": "left-world",
+            "manifest_stop_reason": "left-world"
+          },
+          {
+            "id": "trial-adapter-done",
+            "stop_reason": "adapter-or-scenario-done",
+            "manifest_stop_reason": "adapter-or-scenario-done"
+          }
+        ]
+      }
+    }
+  }
+}

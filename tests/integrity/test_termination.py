@@ -172,16 +172,17 @@ def test_the_single_report_test_catches_a_double_report() -> None:
 def test_the_rules_never_raise_a_termination_finding_for_a_timeout_or_crash() -> None:
     request, _ = load("timeout-single-report")
     payload = json.loads(json.dumps(request["integrity"]))
+    # No trial records a stop reason. Only the trial that ended on its own is a finding.
     payload["evidence"]["termination"]["trials"] = []
     expected = termination(payload, VOCAB_ENUM)
-    assert {item["trial_id"] for item in expected["findings"]} == set()
-    for trial in payload["trials"]:
-        if trial["termination"] == "completed":
-            continue
-        assert trial["id"] in {item["trial_id"] for item in expected["referrals"]}
-    only_ended = json.loads(json.dumps(payload))
-    only_ended["trials"] = [t for t in only_ended["trials"] if t["termination"] != "completed"]
-    result = termination(only_ended, VOCAB_ENUM)
+    assert {item["trial_id"] for item in expected["findings"]} == {"trial-ended"}
+    assert {item["trial_id"] for item in expected["referrals"]} == {"trial-timeout", "trial-crash"}
+    only_ended_early = json.loads(json.dumps(payload))
+    only_ended_early["trials"] = [
+        t for t in only_ended_early["trials"] if t["termination"] != "completed"
+    ]
+    result = termination(only_ended_early, VOCAB_ENUM)
+    assert result["findings"] == []
     assert result["applicable"] is False
     assert "percentage" not in result
 

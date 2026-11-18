@@ -40,8 +40,8 @@ def test_every_finding_category_has_a_triggering_trial() -> None:
     request, result = load("findings")
     check = reported(result, "recording")
     assert finding_keys(check) == [
-        ("media-file-mismatch", "trial-file-mismatch"),
         ("mcap-incomplete", "trial-incomplete"),
+        ("media-file-mismatch", "trial-file-mismatch"),
         ("message-gap-exceeded", "trial-gap"),
         ("missing-channel", "trial-channel"),
         ("observation-link-mismatch", "trial-link"),

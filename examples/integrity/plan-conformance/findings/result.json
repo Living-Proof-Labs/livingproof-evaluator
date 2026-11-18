@@ -1,0 +1,130 @@
+{
+  "format": "livingproof-evaluator-result/1.0.0",
+  "evaluator": {
+    "id": "livingproof-run-integrity",
+    "version": "1.0.0",
+    "kind": "integrity",
+    "execution": "deterministic",
+    "display_name": "Run Integrity",
+    "publisher": "Living Proof Labs",
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" fill=\"none\"/></svg>"
+  },
+  "inputs": [
+    {
+      "role": "manifest",
+      "uri": "manifest.json",
+      "sha256": "3af7de5a747c317bf401075721f7f6656322aa23d279e58a83cc592ab54f20d9"
+    },
+    {
+      "role": "lock",
+      "uri": "verification.lock.json",
+      "sha256": "4beaa5bd5b7637eec3647984340420f3a294618ed9db1417cdc9ace154bf36cb"
+    },
+    {
+      "role": "trials",
+      "uri": "trials.json",
+      "sha256": "3ffb31149639e836ee3085d74eb21be3bb6e262e0087f8a292cd6c9b51904461"
+    },
+    {
+      "role": "evidence",
+      "uri": "evidence.json",
+      "sha256": "6a9b05c100642f9a6aea8ef958c87969fac3202ce22fdd4b2e31ad9c0deed32c"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-11-18T07:00:01Z",
+    "completed_at": "2026-11-18T07:00:02Z"
+  },
+  "integrity": {
+    "run": {
+      "id": "example-plan-conformance-findings",
+      "test_system_status": "ERROR",
+      "conclusion": "INCONCLUSIVE",
+      "success": false,
+      "percentage": 20.0
+    },
+    "trials": [
+      {
+        "id": "trial-01",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-02",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-03",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-04",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      },
+      {
+        "id": "trial-05",
+        "test_system_status": "COMPLETED",
+        "success": true,
+        "percentage": 100
+      }
+    ],
+    "checks": [
+      {
+        "id": "plan-conformance",
+        "version": "1.0.0",
+        "applicable": true,
+        "success": false,
+        "percentage": 20.0,
+        "findings": [
+          {
+            "category": "trial-count-mismatch",
+            "classification": "test_system",
+            "summary": "The plan has 5 trials and trials.count is 6."
+          },
+          {
+            "category": "trial-count-mismatch",
+            "classification": "test_system",
+            "summary": "The plan has 5 trials and the lock's plan trial count is 4."
+          },
+          {
+            "category": "command-speed-mismatch",
+            "classification": "test_system",
+            "summary": "The plan's command_speed is 1.0 and the lock's is 2.0."
+          },
+          {
+            "category": "index-duplicate",
+            "classification": "test_system",
+            "summary": "2 trials.results entries have index 2."
+          },
+          {
+            "category": "index-missing",
+            "classification": "test_system",
+            "summary": "No trials.results entry has index 3."
+          },
+          {
+            "category": "path-mismatch",
+            "classification": "test_system",
+            "summary": "The entry for index 4 has path trials/trial-03.json, not trials/trial-04.json."
+          },
+          {
+            "category": "index-missing",
+            "classification": "test_system",
+            "summary": "No trials.results entry has index 5."
+          },
+          {
+            "category": "index-out-of-range",
+            "classification": "test_system",
+            "summary": "A trials.results entry has index 7, outside 1 to 5."
+          }
+        ]
+      }
+    ]
+  }
+}
