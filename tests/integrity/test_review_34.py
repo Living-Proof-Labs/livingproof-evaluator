@@ -14,6 +14,7 @@ import random
 
 import pytest
 
+import integrity_rules
 from integrity_rules import pins, recording, termination
 from support import ROOT, example_dirs, load_json
 
@@ -230,6 +231,11 @@ def test_a_file_with_no_valid_footer_is_one_report_in_each_version() -> None:
         else:
             assert "mcap-incomplete" in [i["category"] for i in old["findings"]]
         assert old["percentage"] == 50
+        # Under 1.1.0 the same input is inconsistent (the trial is present), so it is rejected.
+        with pytest.raises(integrity_rules.MalformedRequest):
+            recording(payload, "1.1.0")
+        # Classified as the decision says, truncated, completeness owns it and nothing is judged.
+        payload["trials"][0]["recording"]["state"] = "truncated"
         new = recording(payload, "1.1.0")
         assert new["findings"] == [] and new["percentage"] == 100
         assert new["not_checked"] == [{"trial_id": "trial-01", "reason": "not-present"}]

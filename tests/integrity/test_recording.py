@@ -6,6 +6,9 @@ from __future__ import annotations
 import json
 from collections import Counter
 
+import pytest
+
+import integrity_rules
 from integrity_rules import finding_keys, matches_rules, recording, reported
 from support import (
     ROOT,
@@ -287,9 +290,8 @@ def test_version_1_0_0_still_judges_a_file_with_no_valid_footer() -> None:
     old = recording(payload, "1.0.0")
     assert [i["category"] for i in old["findings"]] == ["mcap-incomplete"]
     assert "not_checked" not in old and old["percentage"] == 50
-    new = recording(payload)
-    assert new["findings"] == [] and new["percentage"] == 100
-    assert new["not_checked"] == [{"trial_id": "trial-01", "reason": "not-present"}]
+    with pytest.raises(integrity_rules.MalformedRequest):  # 1.1.0 rejects this input
+        recording(payload)
 
 
 def test_a_1_1_0_recording_check_never_reports_mcap_incomplete() -> None:

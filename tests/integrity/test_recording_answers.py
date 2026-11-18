@@ -14,6 +14,9 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
+import integrity_rules
 from integrity_rules import finding_keys, matches_rules, recording, reported
 from support import ROOT, SCHEMA_ROOT, example_dirs, load_json
 
@@ -84,7 +87,7 @@ def test_a_file_with_no_valid_footer_is_completeness_s_and_listed_not_present() 
     matches_rules(reported(result, "recording"), recording(request))
 
 
-def test_the_rule_does_not_judge_a_file_the_evidence_calls_incomplete() -> None:
+def test_the_rule_rejects_a_present_trial_whose_evidence_says_incomplete() -> None:
     request = load_json(EXAMPLES / "recording" / "clean" / "request.json")["integrity"]
     for channels in (
         [],
@@ -93,9 +96,8 @@ def test_the_rule_does_not_judge_a_file_the_evidence_calls_incomplete() -> None:
         payload = json.loads(json.dumps(request))
         mcap = payload["evidence"]["recording"]["trials"][0]["mcap"]
         mcap["state"], mcap["channels"] = "incomplete", channels
-        expected = recording(payload)
-        assert expected["findings"] == []
-        assert expected["not_checked"] == [{"trial_id": "trial-01", "reason": "not-present"}]
+        with pytest.raises(integrity_rules.MalformedRequest):
+            recording(payload)
     payload = json.loads(json.dumps(request))
     payload["evidence"]["recording"]["trials"][0]["mcap"]["channels"] = []
     categories = [i["category"] for i in recording(payload)["findings"]]
