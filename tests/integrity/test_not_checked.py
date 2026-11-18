@@ -39,7 +39,7 @@ LATEST = {
     "ci-publisher": ("1.0.0", None),
     "plan-conformance": ("1.1.0", ["1.0.0"]),
     "termination": ("1.1.0", ["1.0.0"]),
-    "recording": ("1.1.0", ["1.0.0"]),
+    "recording": ("1.2.0", ["1.0.0", "1.1.0"]),
 }
 
 
@@ -336,6 +336,7 @@ def test_every_example_check_is_at_a_registered_version() -> None:
     # Both versions of each bumped check are shown by an example.
     for check_id in ("pins", "completeness", "termination", "plan-conformance", "recording"):
         assert (check_id, "1.0.0") in seen and (check_id, "1.1.0") in seen
+    assert ("recording", "1.2.0") in seen
 
 
 def test_an_example_that_reports_not_checked_never_also_finds_the_same_subject() -> None:
@@ -411,11 +412,11 @@ def test_the_reference_rules_default_to_the_current_version() -> None:
 
     for function in (
         integrity_rules.termination,
-        integrity_rules.recording,
         integrity_rules.plan_conformance,
         integrity_rules.completeness_applicable,
     ):
         assert inspect.signature(function).parameters["version"].default == "1.1.0", function
+    assert inspect.signature(integrity_rules.recording).parameters["version"].default == "1.2.0"
 
 
 # Published examples stay as they were at v1.1.0, so one version label is one reading. The digests
