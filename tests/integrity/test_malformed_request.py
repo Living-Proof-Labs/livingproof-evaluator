@@ -20,9 +20,10 @@ import random
 import pytest
 
 import integrity_rules
-from support import ROOT, SCHEMA_ROOT, example_dirs, load_json
+from support import ROOT, SCHEMA_ROOT, assert_invalid, assert_valid, example_dirs, load_json
 
 EXAMPLES = ROOT / "examples" / "integrity"
+RECORDING_SCHEMA = load_json(SCHEMA_ROOT / "integrity" / "checks" / "recording.schema.json")
 DOC = (ROOT / "docs" / "run-integrity.md").read_text()
 
 
@@ -34,6 +35,14 @@ def inconsistent() -> dict:
     payload = clean()
     payload["evidence"]["recording"]["trials"][0]["mcap"]["state"] = "incomplete"
     return payload
+
+
+def _set_recording_state(payload: dict, index: int, state: str) -> None:
+    payload["trials"][index]["recording"] = (
+        {"state": state, "sha256": "a" * 64}
+        if state in ("present", "truncated")
+        else {"state": state}
+    )
 
 
 def test_a_present_trial_whose_evidence_says_incomplete_is_rejected() -> None:
@@ -119,6 +128,74 @@ def test_the_rule_rejects_exactly_the_inconsistent_inputs() -> None:
             integrity_rules.recording(payload)
 
 
+@pytest.mark.parametrize("recording_state", ["present", "missing", "truncated", "empty"])
+def test_an_unknown_mcap_state_is_rejected_and_names_the_actual_state(
+    recording_state: str,
+) -> None:
+    payload = clean()
+    _set_recording_state(payload, 0, recording_state)
+    payload["evidence"]["recording"]["trials"][0]["mcap"]["state"] = "garbled"
+    assert_invalid(RECORDING_SCHEMA["$defs"]["evidence"], payload["evidence"]["recording"])
+    with pytest.raises(integrity_rules.MalformedRequest) as raised:
+        integrity_rules.recording(payload)
+    message = str(raised.value)
+    assert "trial-01" in message
+    assert "garbled" in message
+    assert recording_state in message
+    assert "incomplete" not in message
+    old = integrity_rules.recording(payload, "1.0.0")
+    if recording_state == "present":
+        assert [i["category"] for i in old["findings"]] == ["mcap-incomplete"]
+    else:
+        assert old["findings"] == [] and old["percentage"] == 100
+
+
+@pytest.mark.parametrize("recording_state", ["present", "missing", "truncated", "empty"])
+def test_a_missing_mcap_state_raises_malformed_request_not_key_error(
+    recording_state: str,
+) -> None:
+    payload = clean()
+    _set_recording_state(payload, 0, recording_state)
+    del payload["evidence"]["recording"]["trials"][0]["mcap"]["state"]
+    assert_invalid(RECORDING_SCHEMA["$defs"]["evidence"], payload["evidence"]["recording"])
+    with pytest.raises(integrity_rules.MalformedRequest) as raised:
+        integrity_rules.recording(payload)
+    message = str(raised.value)
+    assert "trial-01" in message
+    assert "missing" in message
+    assert recording_state in message
+    if recording_state == "present":
+        with pytest.raises(KeyError):
+            integrity_rules.recording(payload, "1.0.0")
+    else:
+        old = integrity_rules.recording(payload, "1.0.0")
+        assert old["findings"] == [] and old["percentage"] == 100
+
+
+@pytest.mark.parametrize("mcap_state", ["complete", "incomplete", None])
+def test_an_evidence_trial_not_in_trials_is_rejected_at_1_1_0_and_ignored_at_1_0_0(
+    mcap_state: str | None,
+) -> None:
+    payload = clean()
+    extra = copy.deepcopy(payload["evidence"]["recording"]["trials"][0])
+    extra["id"] = "trial-unknown"
+    if mcap_state is None:
+        del extra["mcap"]["state"]
+    else:
+        extra["mcap"]["state"] = mcap_state
+    payload["evidence"]["recording"]["trials"].append(extra)
+    if mcap_state is not None:
+        assert_valid(RECORDING_SCHEMA["$defs"]["evidence"], payload["evidence"]["recording"])
+    with pytest.raises(integrity_rules.MalformedRequest) as raised:
+        integrity_rules.recording(payload)
+    message = str(raised.value)
+    assert "trial-unknown" in message
+    assert (mcap_state or "missing") in message
+    assert integrity_rules.recording(payload, "1.0.0") == integrity_rules.recording(
+        clean(), "1.0.0"
+    )
+
+
 def test_every_1_1_0_example_request_is_consistent() -> None:
     seen = 0
     for example in example_dirs():
@@ -139,6 +216,7 @@ def test_the_schema_and_docs_say_the_request_is_rejected() -> None:
         "properties"
     ]["state"]["description"]
     assert "malformed" in state and "present" in state
-    assert "malformed" in schema["description"]
+    assert "malformed" in schema["description"] and "not in trials" in schema["description"]
     assert "MalformedRequest" in DOC and "no result" in DOC and "status 2" in DOC
+    assert "not in `trials`" in DOC
     assert "not judged either" not in DOC  # the earlier, silent reading
