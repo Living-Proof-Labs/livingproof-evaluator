@@ -175,6 +175,33 @@ def test_evidence_rejects_an_unknown_limit_name_or_a_non_positive_value() -> Non
     assert_invalid(EVIDENCE_SCHEMA, missing)
 
 
+def test_evidence_rejects_the_other_malformed_over_limit_shapes() -> None:
+    """Shape is the evidence schema's job. An evaluator rejects a schema-invalid
+    request with no result and exit status 2. The reference rule assumes valid
+    evidence; MalformedRequest is reserved for present-plus-incomplete."""
+    request, _ = load("clean")
+    evidence = request["integrity"]["evidence"]["recording"]
+    cases = (
+        {"value": 33_554_432},  # missing limit
+        {"limit": "chunk-bytes", "value": -1},
+        {"limit": "chunk-bytes", "value": 1.5},
+        {"limit": "chunk-bytes", "value": "33554432"},
+        {"limit": 1, "value": 33_554_432},
+        {"limit": "chunk-bytes", "value": 33_554_432, "measured": 33_554_433},
+        None,
+        {},
+        ["chunk-bytes", 33_554_432],
+    )
+    for over_limit in cases:
+        ev = json.loads(json.dumps(evidence))
+        ev["trials"][1]["over_limit"] = over_limit
+        assert_invalid(EVIDENCE_SCHEMA, ev)
+    # The cap that was applied must be a positive integer; 1 is the smallest.
+    ok = json.loads(json.dumps(evidence))
+    ok["trials"][1]["over_limit"] = {"limit": "records", "value": 1}
+    assert_valid(EVIDENCE_SCHEMA, ok)
+
+
 def test_a_clean_trial_need_not_carry_over_limit() -> None:
     request, _ = load("clean")
     assert_valid(EVIDENCE_SCHEMA, request["integrity"]["evidence"]["recording"])
@@ -328,3 +355,26 @@ def test_the_published_example_is_recording_1_2_0_over_limit() -> None:
     assert completeness["success"] is True
     states = {trial["id"]: trial["recording"]["state"] for trial in request["integrity"]["trials"]}
     assert states == {"trial-01": "present", "trial-02": "present"}
+
+
+def test_the_published_1_0_0_findings_request_is_rejected_at_1_2_0() -> None:
+    request, _ = load("findings")
+    with pytest.raises(MalformedRequest):
+        recording(request["integrity"], "1.2.0")
+    # 1.0.0 keeps the published reading.
+    old = recording(request["integrity"], "1.0.0")
+    assert "mcap-incomplete" in {item["category"] for item in old["findings"]}
+
+
+def test_published_1_1_0_recording_examples_read_the_same_at_1_2_0() -> None:
+    """Without over_limit, 1.2.0 does not change a 1.1.0 reading."""
+    for name in ("not-checked", "none-judged"):
+        request, result = load(name)
+        assert reported(result, "recording")["version"] == "1.1.0"
+        payload = request["integrity"]
+        earlier = recording(payload, "1.1.0")
+        current = recording(payload, "1.2.0")
+        assert current["applicable"] == earlier["applicable"]
+        assert current["findings"] == earlier["findings"]
+        assert current["not_checked"] == earlier["not_checked"]
+        assert current.get("percentage") == earlier.get("percentage")
