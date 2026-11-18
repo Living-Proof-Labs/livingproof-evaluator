@@ -28,7 +28,7 @@
     {
       "role": "evidence",
       "uri": "evidence.json",
-      "sha256": "df85d379d7d271a15e8da919b6453af7bf227ff2bef0a2c4dbe6925e1d223900"
+      "sha256": "0b54c21edfbc0a68dd1e3f294349c0465a87436e25edc862750a72bfb4d00ca7"
     }
   ],
   "timestamps": {
@@ -251,20 +251,7 @@
               "state": "incomplete",
               "bytes": 48016,
               "sha256": "1642994bf7beb10c963826e16402c5a13736b362c8a63acd170898669dd84c0f",
-              "channels": [
-                {
-                  "topic": "/base_pose",
-                  "message_count": 500,
-                  "backward_steps": 0,
-                  "max_gap_seconds": 0.02
-                },
-                {
-                  "topic": "/joint_states",
-                  "message_count": 500,
-                  "backward_steps": 0,
-                  "max_gap_seconds": 0.02
-                }
-              ]
+              "channels": []
             },
             "media": {
               "mcap_bytes": 48016,

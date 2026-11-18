@@ -8,7 +8,8 @@
       "schema": "schema/integrity/checks/completeness.schema.json",
       "examples": [
         "examples/integrity/completeness",
-        "examples/integrity/completeness-preconditions-unmet"
+        "examples/integrity/completeness-preconditions-unmet",
+        "examples/integrity/completeness-recording-listed-missing"
       ]
     },
     {
