@@ -171,7 +171,7 @@ Integrity fixtures, example data unless noted:
 - `examples/integrity/same-input-agreement/robot-variation/` is example data for different recordings with `robot_determinism` set to `non-deterministic`. The percentage stays 100.
 - `examples/integrity/same-input-agreement/undeclared/` is example data for a simulation that omits `robot_determinism`.
 - `examples/integrity/plan-conformance/conformant/` is example data in which the plan, the trials, and the lock agree.
-- `examples/integrity/plan-conformance/findings/` is example data that triggers every plan-conformance category. Only one of its 10 subjects is clean, so the percentage is 10.
+- `examples/integrity/plan-conformance/findings/` is example data that triggers every plan-conformance category. Two of its 10 subjects are clean (the number of `trials.results` entries, and index 1), so the percentage is 20.
 - `examples/integrity/plan-conformance/preconditions-unmet/` is example data for a run that ran no trials. The check is not applicable.
 - `examples/integrity/termination/clean/` is example data in which every allowed stop reason is clean.
 - `examples/integrity/termination/findings/` is example data that triggers every termination category.
