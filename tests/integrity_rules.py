@@ -26,6 +26,32 @@ from typing import Any
 COMPLETENESS_CATEGORY = {"timeout": "ended-by-timeout", "crash": "ended-by-crash"}
 
 
+def run_summary(run_id: str, checks: list[dict[str, Any]], format_minor: int) -> dict[str, Any]:
+    """The run's status from the reported checks (livingproof-evaluator#38).
+
+    From result format 1.2.0 (``format_minor`` >= 2): when no check is applicable the run is
+    ``INCONCLUSIVE`` (status and conclusion), not successful, with no ``percentage``. Otherwise,
+    and for every earlier format, ``success`` is true when every check succeeded and
+    ``percentage`` is the minimum among the applicable checks, 100 when none is applicable.
+    """
+    applicable = [check["percentage"] for check in checks if check["applicable"]]
+    if not applicable and format_minor >= 2:
+        return {
+            "id": run_id,
+            "test_system_status": "INCONCLUSIVE",
+            "conclusion": "INCONCLUSIVE",
+            "success": False,
+        }
+    run: dict[str, Any] = {"id": run_id, "success": all(check["success"] for check in checks)}
+    if run["success"]:
+        run["test_system_status"] = "COMPLETED"
+    else:
+        run["test_system_status"] = "ERROR"
+        run["conclusion"] = "INCONCLUSIVE"
+    run["percentage"] = min(applicable) if applicable else 100
+    return run
+
+
 def _share(good: int, total: int) -> float:
     return 100 * good / total
 

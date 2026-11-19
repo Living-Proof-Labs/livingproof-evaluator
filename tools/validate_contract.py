@@ -77,6 +77,26 @@ def dispatch_checks(document: dict) -> list[str]:
     return errors
 
 
+def _inconclusive_with_applicable_errors(document: dict) -> list[str]:
+    """At 1.2.0 and later a run with an applicable check cannot be INCONCLUSIVE."""
+    fmt = document.get("format")
+    if not isinstance(fmt, str) or "result/" not in fmt:
+        return []
+    if re.fullmatch(r"livingproof-evaluator-result/1\.(0|1)\.(0|[1-9][0-9]*)", fmt):
+        return []
+    payload = document.get("integrity")
+    if not isinstance(payload, dict) or not isinstance(payload.get("run"), dict):
+        return []
+    if payload["run"].get("test_system_status") != "INCONCLUSIVE":
+        return []
+    checks = payload.get("checks")
+    if isinstance(checks, list) and any(
+        isinstance(c, dict) and c.get("applicable") is True for c in checks
+    ):
+        return ["integrity/run: INCONCLUSIVE is not allowed when a check is applicable"]
+    return []
+
+
 def validate_document(document: dict) -> list[str]:
     """Envelope schema plus registry dispatch. Empty means the document is valid."""
     kind = document.get("format", "")
@@ -94,6 +114,7 @@ def validate_document(document: dict) -> list[str]:
         document.get("format")
     ):
         errors.extend(dispatch_checks(document))
+    errors.extend(_inconclusive_with_applicable_errors(document))
     if _LATER_RESULT.fullmatch(str(document.get("format", ""))):
         errors.extend(_omitted_title_plain_text_errors(document))
         errors.extend(_omitted_icon_subset_errors(document))
