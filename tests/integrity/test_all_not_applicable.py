@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import copy
 
+from validate_contract import validate_document
+
 from integrity_rules import run_summary
 from support import ROOT, assert_invalid, assert_valid, load_json, result_schema
-from validate_contract import validate_document
 
 EXAMPLE = ROOT / "examples" / "integrity" / "all-not-applicable"
 DOC = (ROOT / "docs" / "run-integrity.md").read_text()
