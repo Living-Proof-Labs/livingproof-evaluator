@@ -106,8 +106,8 @@ def test_descriptor_fixtures_are_labelled_example_data() -> None:
 
 def test_existing_1_0_results_stay_valid_without_a_descriptor() -> None:
     for example in example_dirs():
-        if "descriptor" in example.parts:
-            continue
+        if "descriptor" in example.parts or example.name == "all-not-applicable":
+            continue  # all-not-applicable is new at result format 1.2.0 (#38)
         result = load_json(example / "result.json")
         assert result["format"] == "livingproof-evaluator-result/1.0.0"
         assert "descriptor" not in result
