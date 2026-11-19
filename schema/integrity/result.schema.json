@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/integrity/result.schema.json",
   "title": "Run integrity result payload",
-  "description": "Test-system status for the run and for each planned trial, plus the checks that were reported. success and percentage are the quantitative result. percentage is a share from 0 to 100, and the document has no count of successes out of a count of trials. A failed check marks the run ERROR and INCONCLUSIVE. A subject a check did not check is listed in that check's not_checked, outside the denominator of its percentage. This schema has no robot verdict: verdict, grade, pass, and fail are rejected, and finding categories are lowercase slugs.",
+  "description": "Test-system status for the run and for each planned trial, plus the checks that were reported. success and percentage are the quantitative result. percentage is a share from 0 to 100, and the document has no count of successes out of a count of trials. A failed check marks the run ERROR and INCONCLUSIVE. When no check is applicable the run is INCONCLUSIVE with no percentage (result format 1.2.0). A subject a check did not check is listed in that check's not_checked, outside the denominator of its percentage. This schema has no robot verdict: verdict, grade, pass, and fail are rejected, and finding categories are lowercase slugs.",
   "type": "object",
   "unevaluatedProperties": false,
   "required": ["run", "trials", "checks"],
@@ -53,26 +53,26 @@
     "run": {
       "type": "object",
       "unevaluatedProperties": false,
-      "required": ["id", "test_system_status", "success", "percentage"],
+      "required": ["id", "test_system_status", "success"],
       "properties": {
         "id": {"type": "string", "minLength": 1},
         "test_system_status": {
-          "enum": ["COMPLETED", "ERROR"],
-          "description": "COMPLETED means the reported checks found a trustworthy test system. ERROR means a test-system finding is present."
+          "enum": ["COMPLETED", "ERROR", "INCONCLUSIVE"],
+          "description": "COMPLETED means the reported checks found a trustworthy test system. ERROR means a test-system finding is present. INCONCLUSIVE (result format 1.2.0) means no reported check was applicable, so nothing was judged and the run is neither trusted nor failed."
         },
         "conclusion": {
           "const": "INCONCLUSIVE",
-          "description": "Present when the run is untrustworthy. The integrity result uses this mark and does not use a robot verdict."
+          "description": "Present when the run is untrustworthy (with ERROR) or when no check was applicable (with INCONCLUSIVE). The integrity result uses this mark and does not use a robot verdict."
         },
         "success": {
           "type": "boolean",
-          "description": "True when every reported check succeeded. This is test-system success."
+          "description": "True when every reported check succeeded and at least one was applicable. This is test-system success. False when no check was applicable."
         },
         "percentage": {
           "type": "number",
           "minimum": 0,
           "maximum": 100,
-          "description": "The minimum percentage among applicable reported checks. When every reported check is not applicable, the percentage is 100."
+          "description": "The minimum percentage among applicable reported checks. Absent when every reported check is not applicable (status INCONCLUSIVE, result format 1.2.0). Results at format 1.0.0 and 1.1.0 report 100 in that case."
         },
         "verdict": false,
         "grade": false,
@@ -82,7 +82,10 @@
       "allOf": [
         {
           "if": {
-            "properties": {"success": {"const": false}},
+            "properties": {
+              "success": {"const": false},
+              "test_system_status": {"not": {"const": "INCONCLUSIVE"}}
+            },
             "required": ["success"]
           },
           "then": {
@@ -101,6 +104,17 @@
               "conclusion": false
             }
           }
+        },
+        {
+          "if": {
+            "properties": {"test_system_status": {"const": "INCONCLUSIVE"}},
+            "required": ["test_system_status"]
+          },
+          "then": {
+            "required": ["conclusion"],
+            "properties": {"success": {"const": false}, "percentage": false}
+          },
+          "else": {"required": ["percentage"]}
         }
       ]
     },
@@ -399,7 +413,12 @@
         "properties": {
           "run": {
             "required": ["success"],
-            "properties": {"success": {"const": true}}
+            "if": {
+              "properties": {"test_system_status": {"const": "INCONCLUSIVE"}},
+              "required": ["test_system_status"]
+            },
+            "then": {"properties": {"success": {"const": false}}},
+            "else": {"properties": {"success": {"const": true}}}
           },
           "trials": {
             "items": {

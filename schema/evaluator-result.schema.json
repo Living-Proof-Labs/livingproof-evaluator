@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Living-Proof-Labs/livingproof-evaluator/schema/evaluator-result.schema.json",
-  "title": "livingproof-evaluator-result/1.1.0",
-  "description": "Shared result envelope. A scenario result carries step verdicts. An integrity result carries test-system status, success, percentage, and findings. An integrity result cannot include the scenario payload. Format 1.1.0 may add an optional descriptor. A 1.0 format must not include one. Documents that already validated as 1.0.0 still validate.",
+  "title": "livingproof-evaluator-result/1.2.0",
+  "description": "Shared result envelope. A scenario result carries step verdicts. An integrity result carries test-system status, success, percentage, and findings. An integrity result cannot include the scenario payload. Format 1.1.0 may add an optional descriptor. A 1.0 format must not include one. Format 1.2.0 reads a run with no applicable check as INCONCLUSIVE with no percentage; before 1.2.0 that run reads COMPLETED and 100, and the INCONCLUSIVE status is not allowed. Documents that already validated as 1.0.0 or 1.1.0 still validate.",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "evaluator", "inputs", "timestamps"],
@@ -87,6 +87,48 @@
       },
       "then": {
         "properties": {"descriptor": false}
+      }
+    },
+    {
+      "if": {
+        "properties": {"format": {"pattern": "^livingproof-evaluator-result/1\\.(0|1)\\.(0|[1-9][0-9]*)$"}},
+        "required": ["format"]
+      },
+      "then": {
+        "properties": {
+          "integrity": {
+            "properties": {
+              "run": {"properties": {"test_system_status": {"enum": ["COMPLETED", "ERROR"]}}}
+            }
+          }
+        }
+      },
+      "else": {
+        "if": {
+          "properties": {
+            "integrity": {
+              "properties": {
+                "checks": {
+                  "items": {
+                    "properties": {"applicable": {"const": false}},
+                    "required": ["applicable"]
+                  }
+                }
+              },
+              "required": ["checks"]
+            }
+          },
+          "required": ["integrity"]
+        },
+        "then": {
+          "properties": {
+            "integrity": {
+              "properties": {
+                "run": {"properties": {"test_system_status": {"const": "INCONCLUSIVE"}}}
+              }
+            }
+          }
+        }
       }
     }
   ]
