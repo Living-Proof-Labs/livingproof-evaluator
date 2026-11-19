@@ -75,10 +75,6 @@ def test_empty_checks_are_refused_at_1_2_0() -> None:
     assert not _valid(document)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="#38 gap: the schema does not refuse INCONCLUSIVE when a check is applicable",
-)
 def test_a_run_with_an_applicable_check_cannot_be_inconclusive_at_1_2_0() -> None:
     for base in (_mixed(), _doc(CLEAN, 2, {}, ())):
         document = _doc(base, 2, INCONCLUSIVE, ("percentage",))
