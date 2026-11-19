@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from integrity_rules import run_summary
 from support import (
     EXAMPLES,
     REGISTRY_PATH,
@@ -135,18 +136,9 @@ def test_integrity_run_uses_success_and_percentage() -> None:
         assert [trial["id"] for trial in payload["trials"]] == planned
         checks = payload["checks"]
         assert len({check["id"] for check in checks}) == len(checks)
-        success = all(check["success"] for check in checks)
-        applicable = [check["percentage"] for check in checks if check["applicable"]]
-        expected = min(applicable) if applicable else 100
-        assert payload["run"]["success"] is success
-        assert payload["run"]["percentage"] == expected
-        assert payload["run"]["id"] == request["integrity"]["manifest"]["id"]
-        if success:
-            assert payload["run"]["test_system_status"] == "COMPLETED"
-            assert "conclusion" not in payload["run"]
-        else:
-            assert payload["run"]["test_system_status"] == "ERROR"
-            assert payload["run"]["conclusion"] == "INCONCLUSIVE"
+        minor = int(result["format"].split("/1.")[1].split(".")[0])
+        expected_run = run_summary(request["integrity"]["manifest"]["id"], checks, minor)
+        assert payload["run"] == expected_run
         by_id = {entry["id"]: entry for entry in check_registry()}
         for check in checks:
             entry = by_id[check["id"]]
