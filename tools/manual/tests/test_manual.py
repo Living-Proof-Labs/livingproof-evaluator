@@ -153,10 +153,58 @@ def test_shared_brand():
         assert 'data-md-color-primary="indigo"' not in html
 
 
-class HeaderFooterInspector(HTMLParser):
+class VisibleHTMLParser(HTMLParser):
+    """Ignore non-rendered HTML; CSS visibility is checked in the browser tests."""
+
+    VOID_TAGS = (
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+    )
+
     def __init__(self):
         super().__init__()
-        self.skip = 0
+        self.hidden_elements = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        style = re.sub(r"\s+", "", attrs.get("style", "").lower())
+        hidden = (
+            tag in ("script", "style", "template")
+            or "hidden" in attrs
+            or "display:none" in style
+            or "visibility:hidden" in style
+        )
+        if tag not in self.VOID_TAGS:
+            self.hidden_elements.append((tag, hidden))
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.hidden_elements) - 1, -1, -1):
+            if self.hidden_elements[index][0] == tag:
+                del self.hidden_elements[index:]
+                break
+
+
+def commit_pattern(commit):
+    """Match this build's full or abbreviated identity, not arbitrary hex words."""
+    prefixes = "|".join(re.escape(commit[:length]) for length in range(7, 41))
+    return re.compile(r"\b(?:" + prefixes + r")\b", re.IGNORECASE)
+
+
+class HeaderFooterInspector(VisibleHTMLParser):
+    def __init__(self):
+        super().__init__()
         self.in_source_repo = 0
         self.in_footer = 0
         self.in_link = False
@@ -169,13 +217,14 @@ class HeaderFooterInspector(HTMLParser):
         self.visible_text = []
 
     def handle_starttag(self, tag, attrs):
+        super().handle_starttag(tag, attrs)
         attr_dict = dict(attrs)
         classes = set(attr_dict.get("class", "").split())
-        if tag in ("script", "style"):
-            self.skip += 1
-        if "md-source__repository" in classes or self.in_source_repo:
+        if tag not in self.VOID_TAGS and (
+            "md-source__repository" in classes or self.in_source_repo
+        ):
             self.in_source_repo += 1
-        if tag == "footer" or self.in_footer:
+        if tag not in self.VOID_TAGS and (tag == "footer" or self.in_footer):
             self.in_footer += 1
         if tag == "a" and "md-source" in classes:
             self.source_links.append(attr_dict.get("href", ""))
@@ -185,8 +234,9 @@ class HeaderFooterInspector(HTMLParser):
             self.link_text = []
 
     def handle_endtag(self, tag):
-        if tag in ("script", "style") and self.skip:
-            self.skip -= 1
+        if tag in self.VOID_TAGS:
+            return
+        super().handle_endtag(tag)
         if self.in_source_repo:
             self.in_source_repo -= 1
         if self.in_footer:
@@ -200,7 +250,7 @@ class HeaderFooterInspector(HTMLParser):
             self.in_link = False
 
     def handle_data(self, data):
-        if self.skip:
+        if any(hidden for _, hidden in self.hidden_elements):
             return
         self.visible_text.append(data)
         if self.in_source_repo:
@@ -214,7 +264,7 @@ class HeaderFooterInspector(HTMLParser):
 def test_no_sha_in_header_or_footer_visible_text():
     record = json.loads((SITE / "build.json").read_text())
     commit = record["source_commit"]
-    sha_pattern = re.compile(r"\b[0-9a-f]{7,40}\b", re.IGNORECASE)
+    sha_pattern = commit_pattern(commit)
     for path in SITE.rglob("*.html"):
         inspector = HeaderFooterInspector()
         inspector.feed(path.read_text())
@@ -231,23 +281,90 @@ def test_no_sha_in_header_or_footer_visible_text():
             assert commit in title, (path, title)
         if path.name != "version.html":
             visible = " ".join(inspector.visible_text)
-            assert commit[:7] not in visible, path
+            assert not sha_pattern.search(visible), (path, visible)
 
 
-def test_browser_header_and_footer_have_no_sha(browser, base_url):
+@pytest.mark.parametrize("metadata", [False, True], ids=["no-metadata", "release-metadata"])
+@pytest.mark.parametrize("width", [390, 1280])
+def test_browser_header_and_footer_have_no_sha(browser, base_url, metadata, width):
     record = json.loads((SITE / "build.json").read_text())
     commit = record["source_commit"]
-    sha_pattern = re.compile(r"\b[0-9a-f]{7,40}\b", re.IGNORECASE)
-    page = browser.new_page()
+    sha_pattern = commit_pattern(commit)
+    page = browser.new_page(viewport={"width": width, "height": 844})
+
+    def github_response(route):
+        if not metadata:
+            route.fulfill(status=404, json={"message": "Not Found"})
+        elif route.request.url.endswith("/releases/latest"):
+            route.fulfill(json={"tag_name": "v1.6.1"})
+        else:
+            route.fulfill(json={"stargazers_count": 12, "forks_count": 3})
+
+    page.route("https://api.github.com/**", github_response)
     page.goto(base_url)
-    header_source = page.locator(".md-header__source").inner_text().strip()
-    assert header_source == "Source · development"
-    assert not sha_pattern.search(header_source)
-    assert commit in page.locator(".md-header__source a.md-source").get_attribute("href")
+    source = page.locator(".md-header__source")
+    if metadata:
+        page.wait_for_function(
+            "document.querySelector('.md-header__source').textContent.includes('v1.6.1')"
+        )
+        assert source.locator(".md-source__fact--version").inner_text().strip() == "v1.6.1"
+        assert source.locator(".md-source__fact--stars").inner_text().strip() == "12"
+        assert source.locator(".md-source__fact--forks").inner_text().strip() == "3"
+    else:
+        page.wait_for_load_state("networkidle")
+        assert source.inner_text().strip() == "Source · development"
+    # Release facts are child elements of the repository label in some themes.
+    # Read only its own text nodes, without hiding or removing those facts.
+    label = source.locator(".md-source__repository").evaluate(
+        "e => [...e.childNodes].filter(n => n.nodeType === Node.TEXT_NODE)"
+        ".map(n => n.textContent).join('').trim()"
+    )
+    assert label == "Source · development"
+    assert not sha_pattern.search(source.inner_text())
+    assert commit in source.locator("a.md-source").get_attribute("href")
     docs_link = page.get_by_role("link", name="Docs: development", exact=True)
     assert docs_link.inner_text().strip() == "Docs: development"
     assert not sha_pattern.search(docs_link.inner_text())
     assert commit in docs_link.get_attribute("href")
     assert commit in docs_link.get_attribute("title")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.screenshot(
+        path=str(ROOT / f"artifacts/manual/identity-{metadata}-{width}.png"), full_page=True
+    )
     page.close()
 
+
+@pytest.mark.parametrize("length", [7, 12, 40])
+def test_visible_commit_identity_is_detected(length):
+    commit = "a1b2c3d4e5f6789012345678901234567890abcdef"
+    inspector = HeaderFooterInspector()
+    inspector.feed(f"<footer>Docs: development · {commit[:length]}</footer>")
+    assert commit_pattern(commit).search(" ".join(inspector.footer_text))
+
+
+@pytest.mark.parametrize(
+    "wrapper",
+    [
+        "<span hidden><em>{sha}</em><br></span>",
+        '<span style="display: none">{sha}</span>',
+        '<span style="visibility: hidden">{sha}</span>',
+        "<script>{sha}</script>",
+        "<style>{sha}</style>",
+        "<template>{sha}</template>",
+    ],
+)
+def test_hidden_provenance_and_ordinary_words_are_not_commit_identity(wrapper):
+    commit = "a1b2c3d4e5f6789012345678901234567890abcdef"
+    inspector = HeaderFooterInspector()
+    inspector.feed(
+        "<footer>defaced "
+        + wrapper.format(sha=commit)
+        + f'<a href="https://github.com/example/repo/tree/{commit}" title="{commit}">'
+        + "Docs: development</a> after</footer>"
+    )
+    visible = " ".join(inspector.visible_text)
+    assert "defaced" in visible and "after" in visible
+    assert not commit_pattern(commit).search(visible)
+    assert inspector.docs_links == [
+        ("Docs: development", f"https://github.com/example/repo/tree/{commit}", commit)
+    ]
