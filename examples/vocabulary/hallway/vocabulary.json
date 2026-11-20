@@ -1,0 +1,54 @@
+{
+  "format": "livingproof-observable-vocabulary/1.0.0",
+  "scope": "hallway",
+  "terms": [
+    {
+      "id": "base",
+      "name": "base",
+      "meaning": "The robot's base origin: the one body point a hallway scenario tracks. Its position is read at each recorded sample.",
+      "frame": "The hallway world frame: x along the route, y sideways with the centreline at y = 0, z up from the floor.",
+      "units": "metres for position, seconds for sample time",
+      "nominal": {
+        "applies": "never",
+        "rule": "The base position has no per-robot nominal. A scenario states places (exit, centreline) and numbers, not a nominal."
+      },
+      "sources": [
+        "examples/scenario/graded/request.json: steps reach-the-exit and stay-near-centerline",
+        "livingproof-evaluator-scenario checks.py: exit crossing and distance from the route, from the base point of each trace sample (x, y)",
+        "robot-capability-specs walk-hallway README: places, not axes (the body point is the base origin)"
+      ]
+    },
+    {
+      "id": "base_height",
+      "name": "base height",
+      "meaning": "How high the base origin is above the floor. The hallway grades its lowest value over the trial.",
+      "frame": "The hallway world frame, measured up from the floor (z = 0).",
+      "units": "metres",
+      "nominal": {
+        "applies": "per-robot-configuration",
+        "rule": "Each robot configuration profile carries nominal_base_height, the measured standing base height in metres. The hallway evaluator grades min_base_height against fall_base_height, a separate per-configuration value in metres from the same profile, and does not compute it from nominal_base_height. A step may state a fraction of nominal, as the example step stay-upright does (60% of nominal)."
+      },
+      "sources": [
+        "examples/scenario/graded/request.json: step stay-upright",
+        "livingproof-evaluator-scenario checks.py: fail_less grades min_base_height against fall_height",
+        "livingproof-evaluator-scenario run manifest: configuration.profile.locomotion.nominal_base_height and fall_base_height"
+      ]
+    },
+    {
+      "id": "body_contact",
+      "name": "body contact",
+      "meaning": "Any contact between any part of the robot and a hallway wall. Each contact has its wall, a start time, an end time and a depth, the penetration at real-geometry signed distance at or below zero.",
+      "frame": "The hallway world: the wall is named (wall-left or wall-right) and times run from the start of the trial.",
+      "units": "depth in metres, start and end in seconds",
+      "nominal": {
+        "applies": "never",
+        "rule": "Body contact has no per-robot nominal. The hallway rule is that no contact is recorded, a limit of zero."
+      },
+      "sources": [
+        "examples/scenario/graded/request.json: bound_observables lists body_contact",
+        "livingproof-evaluator-scenario checks.py: fail_not_empty reads wall_contacts, the hallway metric for this term",
+        "robot-capability-specs walk-hallway README: wall_contacts must be empty"
+      ]
+    }
+  ]
+}

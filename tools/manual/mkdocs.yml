@@ -30,6 +30,7 @@ nav:
       - Repository overview: overview.md
       - Run integrity: docs/run-integrity.md
       - Evaluator descriptor: docs/evaluator-descriptor.md
+      - Observable vocabulary: docs/observable-vocabulary.md
   - Reference:
       - Contracts: contracts.md
       - Tasks: tasks.md
