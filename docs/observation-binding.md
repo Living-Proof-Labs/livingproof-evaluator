@@ -6,7 +6,7 @@ The scope is what the existing fixtures and checks need: MCAP recordings only, w
 
 A binding comes in three kinds. The first two are written once, by the owner of the thing they describe. The third is made for each trial.
 
-- **robot binding** (`kind: robot`): what only the robot knows. The robot, a configuration, and per observable the robot body whose origin is the term (`base`: `pelvis` for the G1) and the `nominal` of a term whose nominal applies per robot configuration (`base_height`: 0.78 m for the G1 stock configuration). Example: [`examples/binding/robot/unitree-g1-stock.json`](../examples/binding/robot/unitree-g1-stock.json).
+- **robot binding** (`kind: robot`): what only the robot knows. The robot, a configuration, and per observable the robot body whose origin is the term (`base`: `pelvis` for the G1) and the `nominal` of a term whose nominal applies per robot configuration (`base_height`: 0.78 meters for the G1 stock configuration, in the vocabulary's unit). Example: [`examples/binding/robot/unitree-g1-stock.json`](../examples/binding/robot/unitree-g1-stock.json).
 - **producer binding** (`kind: producer`): what only the producer knows. Per observable, the one MCAP channel that carries it (`topic`, `encoding`, `schema`), the `fields` that hold its values as dotted paths, and the `frame` the values are in. For livingproof-sim-mujoco, `/base_pose` carries `base` (x and y) and `base_height` (z). Example: [`examples/binding/producer/livingproof-sim-mujoco.json`](../examples/binding/producer/livingproof-sim-mujoco.json).
 - **merged binding** (`kind: merged`): the result for one trial. It joins the robot's entries and the producer's entries per observable, names the recording (`uri` and `sha256`) and the trial, and lists `bound_observables`, the same list a scenario request carries as `binding.bound_observables`. Example: [`examples/binding/merged/unitree-g1-stock-livingproof-sim-mujoco.json`](../examples/binding/merged/unitree-g1-stock-livingproof-sim-mujoco.json).
 
@@ -25,4 +25,8 @@ It does not define terms (see the vocabulary), or describe anything but MCAP rec
 
 ## Placeholders
 
-The examples hold placeholder values, marked so a reader and a test can see them, and still valid against the schema: the recording `uri` is on `example.invalid`, the recording `sha256` is all zeros, and the nominal's `source` and `ref` start with `placeholder:`. Real values arrive with the published robot and producer bindings. The robot's base body (`pelvis` for the G1) belongs to the robot binding because it comes from the robot's description, which every producer shares.
+The examples hold placeholder values, marked so a reader and a test can see them, and still valid against the schema: the recording `uri` is on `example.invalid`, the recording `sha256` is all zeros, and the nominal's `ref` starts with `placeholder:` (its value and `measured` source are the G1's). Real values arrive with the published robot and producer bindings. The robot's base body (`pelvis` for the G1) belongs to the robot binding because it comes from the robot's description, which every producer shares.
+
+## What the schema checks per term
+
+For each bound term the schema fixes what the vocabulary says. `base` has the fields `x` and `y` and, from the robot, a `body`; `base_height` has the field `z` and, from the robot, a `nominal` in `meters`. The frame is `world`. A robot binding cannot give `base` a nominal, a nominal in another unit, or any entry for `body_contact`.

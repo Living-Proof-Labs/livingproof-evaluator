@@ -20,7 +20,7 @@
       "schema": "foxglove.PoseInFrame",
       "fields": {"z": "pose.position.z"},
       "frame": "world",
-      "nominal": {"value": 0.78, "unit": "m", "source": "placeholder: the measured standing base height, set when the robot binding is published", "ref": "placeholder: unitree-g1/stock"}
+      "nominal": {"value": 0.78, "unit": "meters", "source": "measured", "ref": "placeholder: unitree-g1/stock"}
     }
   },
   "bound_observables": ["base", "base_height"],
