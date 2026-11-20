@@ -111,6 +111,47 @@ def test_a_bound_observable_has_its_channel_fields_and_the_robot_entries_it_need
             assert need in entry, (name, need)
 
 
+def test_no_example_request_claims_body_contact_is_bound() -> None:
+    """The recording has no contact channel yet (livingproof-sim-mujoco#28): it is unbound."""
+    requests = sorted(EXAMPLES.rglob("request.json"))
+    claims = [
+        str(path.relative_to(ROOT))
+        for path in requests
+        if "body_contact"
+        in (load_json(path).get("scenario", {}).get("binding", {}).get("bound_observables", []))
+    ]
+    assert requests and claims == []
+    merged = load_json(MERGED)
+    assert "body_contact" not in merged["bound_observables"]
+    assert [item["id"] for item in merged["unbound"]] == ["body_contact"]
+
+
+def test_the_binding_is_for_mcap_recordings_only() -> None:
+    merged = load_json(MERGED)
+    assert merged["recording"]["uri"].endswith(".mcap")
+    text = (ROOT / "docs" / "observation-binding.md").read_text()
+    assert "MCAP recordings only" in text
+    assert "livingproof-sim-mujoco#28" in text
+
+
+def test_placeholders_are_plainly_marked_and_schema_valid() -> None:
+    merged = load_json(MERGED)
+    assert merged["recording"]["uri"].startswith("https://example.invalid/")
+    assert merged["recording"]["sha256"] == "0" * 64
+    for path in (ROBOT, MERGED):
+        nominal = load_json(path)["observables"]["base_height"]["nominal"]
+        assert nominal["source"].startswith("placeholder:"), path
+        assert nominal["ref"].startswith("placeholder:"), path
+    text = (ROOT / "docs" / "observation-binding.md").read_text()
+    assert "example.invalid" in text and "placeholder" in text
+
+
+def test_pinning_is_left_to_verification_100() -> None:
+    text = (ROOT / "docs" / "observation-binding.md").read_text()
+    assert "livingproof-verification#100" in text
+    assert "https://github.com/Living-Proof-Labs/livingproof-verification/issues/100" in text
+
+
 def test_the_merged_bound_list_matches_the_scenario_request_shape() -> None:
     """The scenario request already carries `binding.bound_observables`; this is that list."""
     request = load_json(EXAMPLES / "scenario" / "graded" / "request.json")
