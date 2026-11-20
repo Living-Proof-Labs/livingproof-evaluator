@@ -6,7 +6,7 @@ Evaluator contract for Living Proof Labs robot capability verification.
 
 This repository holds:
 
-- The **observable vocabulary**: defined terms such as base, base_height, body contact and feet, each with meaning, frame and units.
+- The **observable vocabulary**: defined terms, each with meaning, frame, units and a rule for when a per-robot `nominal` applies. The hallway terms (base, base_height, body_contact) are published in [docs/observable-vocabulary.md](docs/observable-vocabulary.md).
 - The **observation-binding format** (`livingproof-observation-binding/1.0.0`): a declarative mapping from observables to MCAP channels and fields, including a per-robot `nominal` value for robot-dependent observables such as base_height.
 - The **evaluator I/O contract**: for one trial, an evaluator receives the MCAP, the merged binding, the scenario and the run manifest, and returns a verdict per step, including `not evaluated` for an unknown step or unbound observable.
 - The **evaluator identity**: every evaluator declares an id, a display name, a publisher, a version, an icon (SVG, owned by the publisher) and an execution (`deterministic` or `agentic`). Every result it returns carries that identity, so a report can show the evaluator's mark — for example the Roboto, Foxglove or Alloy logo — next to the result.
@@ -17,7 +17,7 @@ It does not implement a particular evaluator, hold Gherkin step definitions, or 
 
 ## Status
 
-The shared envelope, the optional 1.1 descriptor, and the run-integrity contract are published here as schemas, examples, and tests. The fixtures are example data, except the publisher check, which records one real GitHub run. The observable vocabulary and the observation-binding format are still design. There is no evaluator implementation in this repository. The agreed design is in the [Living Proof Evaluator Skill — Feature Proposal](https://app.notion.com/p/414e1aa44c2981e0b8b2fcb28f47ea40).
+The shared envelope, the optional 1.1 descriptor, and the run-integrity contract are published here as schemas, examples, and tests. The fixtures are example data, except the publisher check, which records one real GitHub run. The hallway observable vocabulary is published as a schema, a fixture and a guide. The observation-binding format is still design. There is no evaluator implementation in this repository. The agreed design is in the [Living Proof Evaluator Skill — Feature Proposal](https://app.notion.com/p/414e1aa44c2981e0b8b2fcb28f47ea40).
 
 ## License
 
