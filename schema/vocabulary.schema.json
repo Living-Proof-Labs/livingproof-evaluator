@@ -45,7 +45,25 @@
               "enum": ["never", "per-robot-configuration"],
               "description": "never: the term has no per-robot nominal. per-robot-configuration: a nominal value exists for each robot and configuration."
             },
-            "rule": {"$ref": "#/$defs/text"}
+            "rule": {"$ref": "#/$defs/text"},
+            "current_implementation": {
+              "$ref": "#/$defs/text",
+              "description": "How the evaluator grades today when that differs from the rule, so the gap is visible. Optional."
+            }
+          }
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Evaluator metrics defined in terms of this term. Optional.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "maps"],
+            "properties": {
+              "id": {"$ref": "#/$defs/text", "description": "The evaluator's metric name, for example wall_contacts."},
+              "maps": {"$ref": "#/$defs/text", "description": "How the metric relates to the term."}
+            }
           }
         },
         "sources": {
