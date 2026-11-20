@@ -18,7 +18,7 @@ A request uses `livingproof-evaluator-request/1.0.0`. A result uses `livingproof
 
 `kind` selects the payload.
 
-**Scenario.** The payload is one trial. The evaluator grades that trial's steps against its recording and returns a robot result for each step: `PASS`, `FAIL`, `INCONCLUSIVE`, or `NOT_EVALUATED`. `NOT_EVALUATED` is the not-evaluated result. Its reason is `unknown_step` or `unbound_observable`. The scenario payload has step verdicts and has no test-system status. Folding those verdicts into a grade stays deferred.
+**Scenario.** The payload is one trial. The evaluator grades that trial's steps against its recording and returns a robot result for each step: `PASS`, `FAIL`, `INCONCLUSIVE`, or `NOT_EVALUATED`. `NOT_EVALUATED` is the not-evaluated result. Its reason is `unknown_step`, `unbound_observable` or `missing_threshold` (a limit the run manifest does not give; no default stands in). The scenario payload has step verdicts and has no test-system status. Folding those verdicts into a grade stays deferred.
 
 **Integrity.** The payload is one run's manifest, verification lock, and trial evidence, plus the checks that were reported. It reports test-system status for the run and for each planned trial, together with findings. `success` is test-system success. `percentage` is a share from 0 to 100. The run percentage is the minimum percentage among the applicable checks in that result. When every reported check is not applicable, the run is `INCONCLUSIVE` with no percentage (result format 1.2.0; see below). A result whose checks succeeded has test-system status `COMPLETED`. A result with a failed check has test-system status `ERROR` and conclusion `INCONCLUSIVE`.
 
