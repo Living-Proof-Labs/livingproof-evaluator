@@ -8,6 +8,8 @@ no broader ontology, and no mapping to MCAP channels or to a robot model.
 
 from __future__ import annotations
 
+import json
+
 from support import EXAMPLES, ROOT, SCHEMA_ROOT, assert_invalid, assert_valid, load_json
 
 SCHEMA = SCHEMA_ROOT / "vocabulary.schema.json"
@@ -96,27 +98,58 @@ def test_base_height_has_a_per_robot_nominal_and_the_others_have_none() -> None:
     assert by_id["body_contact"]["nominal"]["applies"] == "never"
 
 
-def test_the_fall_threshold_is_relative_to_nominal_and_today_s_absolute_value_is_recorded() -> None:
-    """Rivet's decision 3: specs stay robot-neutral; the binding supplies the nominal."""
+def test_the_fall_threshold_is_the_absolute_fall_height_and_nominal_is_reference_only() -> None:
+    """Rivet's revised decision 3: document what the walk-hallway spec grades against."""
     nominal = terms()["base_height"]["nominal"]
-    assert "60% of nominal" in nominal["rule"]
-    assert "robot binding supplies the nominal" in nominal["rule"]
-    assert "tuning value" in nominal["rule"]
-    today = nominal["current_implementation"]
-    assert "fall_base_height" in today and "min_base_height" in today
-    assert "0.5 m" in today and "0.78 m" in today
-    assert "reads bindings" in today
+    rule = nominal["rule"]
+    assert "fall_height" in rule and "fall_base_height" in rule
+    assert "absolute" in rule and "reference" in rule
+    assert "0.5 m" in rule and "0.78 m" in rule
+    assert "current_implementation" not in nominal
+    assert "%" not in json.dumps(terms()["base_height"]), "no ratio rule is stated"
+    assert "%" not in DOC.read_text()
+    assert "60%" not in json.dumps(vocabulary())
 
 
 def test_body_contact_is_contact_with_a_named_surface_and_wall_contacts_maps_to_it() -> None:
-    """Rivet's decision 2: general name and meaning; the metric is the hallway-wall count."""
+    """Rivet's decision 2: general name and meaning; the metric is the hallway-wall list."""
     term = terms()["body_contact"]
     assert "named environment surface" in term["meaning"]
     assert "hallway wall" in term["meaning"]
     assert [metric["id"] for metric in term["metrics"]] == ["wall_contacts"]
-    assert "count of body_contact events with hallway walls" in term["metrics"][0]["maps"]
+    maps = term["metrics"][0]["maps"]
+    assert "list of body_contact events with hallway walls" in maps
+    assert "{wall, start, end, depth}" in maps and "empty" in maps
+    assert "count" not in maps and "count" not in term["meaning"]
     others = {name: t for name, t in terms().items() if name != "body_contact"}
     assert all("metrics" not in t for t in others.values())
+
+
+def test_depth_is_the_intrusion_past_the_wall_face_not_a_penetration_depth() -> None:
+    meaning = terms()["body_contact"]["meaning"]
+    assert "how far the farthest collision part reaches past the surface's inner face" in meaning
+    assert "intrusion" in meaning and "not a penetration depth" in meaning
+    assert "signed distance" not in json.dumps(vocabulary())
+
+
+def test_the_base_frame_uses_centerline_and_fits_the_corner_worlds() -> None:
+    frame = terms()["base"]["frame"]
+    assert "centerline" in frame and "route polyline" in frame and "corner worlds" in frame
+    text = json.dumps(vocabulary()) + DOC.read_text()
+    for british in ("centreline", "metres", "metre "):
+        assert british not in text, british
+
+
+def test_the_schema_constrains_units_so_a_wrong_unit_fails() -> None:
+    schema = load_json(SCHEMA)
+    for units in ("furlongs", "meters furlongs", "metres"):
+        broken = vocabulary()
+        broken["terms"][0]["units"] = units
+        assert_invalid(schema, broken)
+    fine = vocabulary()
+    fine["terms"][0]["units"] = "meters for position, seconds for sample time"
+    assert_valid(schema, fine)
+    assert "current_implementation" not in json.dumps(schema)
 
 
 def test_feet_stay_out_until_something_observes_them() -> None:
@@ -133,8 +166,6 @@ def test_the_doc_states_every_definition_as_the_fixture_does() -> None:
         for field in ("meaning", "frame", "units"):
             assert term[field] in text, (term["id"], field)
         assert term["nominal"]["rule"] in text, term["id"]
-        if "current_implementation" in term["nominal"]:
-            assert term["nominal"]["current_implementation"] in text, term["id"]
         for metric in term.get("metrics", []):
             assert f"`{metric['id']}`" in text and metric["maps"] in text, term["id"]
     for heading in ("Meaning", "Frame", "Units", "Nominal"):
