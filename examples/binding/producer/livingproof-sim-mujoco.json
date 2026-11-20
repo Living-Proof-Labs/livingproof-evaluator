@@ -16,6 +16,13 @@
       "schema": "foxglove.PoseInFrame",
       "fields": {"z": "pose.position.z"},
       "frame": "world"
+    },
+    "body_contact": {
+      "topic": "/wall_contacts",
+      "encoding": "json",
+      "schema": "livingproof.WallContact",
+      "fields": {"wall": "wall", "start": "start", "end": "end", "depth": "depth"},
+      "frame": "world"
     }
   }
 }
