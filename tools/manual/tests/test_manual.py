@@ -3,6 +3,7 @@ import functools
 import hashlib
 import json
 import os
+import re
 import threading
 from html.parser import HTMLParser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -150,3 +151,103 @@ def test_shared_brand():
         html = path.read_text()
         assert "assets/brand.css" in html
         assert 'data-md-color-primary="indigo"' not in html
+
+
+class HeaderFooterInspector(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.skip = 0
+        self.in_source_repo = 0
+        self.in_footer = 0
+        self.in_link = False
+        self.link_attrs = {}
+        self.link_text = []
+        self.source_repos = []
+        self.source_links = []
+        self.docs_links = []
+        self.footer_text = []
+        self.visible_text = []
+
+    def handle_starttag(self, tag, attrs):
+        attr_dict = dict(attrs)
+        classes = set(attr_dict.get("class", "").split())
+        if tag in ("script", "style"):
+            self.skip += 1
+        if "md-source__repository" in classes or self.in_source_repo:
+            self.in_source_repo += 1
+        if tag == "footer" or self.in_footer:
+            self.in_footer += 1
+        if tag == "a" and "md-source" in classes:
+            self.source_links.append(attr_dict.get("href", ""))
+        if tag == "a":
+            self.in_link = True
+            self.link_attrs = attr_dict
+            self.link_text = []
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style") and self.skip:
+            self.skip -= 1
+        if self.in_source_repo:
+            self.in_source_repo -= 1
+        if self.in_footer:
+            self.in_footer -= 1
+        if tag == "a" and self.in_link:
+            text = "".join(self.link_text).strip()
+            if text.startswith("Docs: development"):
+                self.docs_links.append(
+                    (text, self.link_attrs.get("href", ""), self.link_attrs.get("title", ""))
+                )
+            self.in_link = False
+
+    def handle_data(self, data):
+        if self.skip:
+            return
+        self.visible_text.append(data)
+        if self.in_source_repo:
+            self.source_repos.append(data)
+        if self.in_footer:
+            self.footer_text.append(data)
+        if self.in_link:
+            self.link_text.append(data)
+
+
+def test_no_sha_in_header_or_footer_visible_text():
+    record = json.loads((SITE / "build.json").read_text())
+    commit = record["source_commit"]
+    sha_pattern = re.compile(r"\b[0-9a-f]{7,40}\b", re.IGNORECASE)
+    for path in SITE.rglob("*.html"):
+        inspector = HeaderFooterInspector()
+        inspector.feed(path.read_text())
+        repo_text = "".join(inspector.source_repos).strip()
+        assert "Source · development" in repo_text, path
+        assert not sha_pattern.search(repo_text), (path, repo_text)
+        assert any(commit in href for href in inspector.source_links), path
+        footer_text = " ".join(inspector.footer_text)
+        assert not sha_pattern.search(footer_text), (path, footer_text)
+        for text, href, title in inspector.docs_links:
+            assert text == "Docs: development", (path, text)
+            assert not sha_pattern.search(text), (path, text)
+            assert commit in href, (path, href)
+            assert commit in title, (path, title)
+        if path.name != "version.html":
+            visible = " ".join(inspector.visible_text)
+            assert commit[:7] not in visible, path
+
+
+def test_browser_header_and_footer_have_no_sha(browser, base_url):
+    record = json.loads((SITE / "build.json").read_text())
+    commit = record["source_commit"]
+    sha_pattern = re.compile(r"\b[0-9a-f]{7,40}\b", re.IGNORECASE)
+    page = browser.new_page()
+    page.goto(base_url)
+    header_source = page.locator(".md-header__source").inner_text().strip()
+    assert header_source == "Source · development"
+    assert not sha_pattern.search(header_source)
+    assert commit in page.locator(".md-header__source a.md-source").get_attribute("href")
+    docs_link = page.get_by_role("link", name="Docs: development", exact=True)
+    assert docs_link.inner_text().strip() == "Docs: development"
+    assert not sha_pattern.search(docs_link.inner_text())
+    assert commit in docs_link.get_attribute("href")
+    assert commit in docs_link.get_attribute("title")
+    page.close()
+
