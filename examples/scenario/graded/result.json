@@ -23,7 +23,7 @@
     {
       "role": "scenario",
       "uri": "scenario.json",
-      "sha256": "0e5fc30384d9cfe199147b0bfc92bd33465f13c96df747aef461dbe472c16a61"
+      "sha256": "c48ef2292cf252d4751a0f0f0a2fbb75bcb736d166844aa9cf0a6371662f4de2"
     },
     {
       "role": "manifest",
@@ -51,7 +51,7 @@
       {
         "id": "stay-upright",
         "verdict": "INCONCLUSIVE",
-        "summary": "The recording does not show whether the base height stayed above 60% of nominal."
+        "summary": "The recording does not show whether the base height stayed above the fall height."
       }
     ]
   }

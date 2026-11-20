@@ -41,7 +41,7 @@ Scenario text calls it "base height".
 
 Used in:
 
-- examples/scenario/graded/request.json: step stay-upright (the step text states the threshold relative to nominal; the spec grades the absolute fall_height)
+- examples/scenario/graded/request.json: step stay-upright (the step text names the fall height, the absolute fall_height the spec grades)
 - livingproof-evaluator-scenario checks.py: fail_less grades min_base_height against fall_height, which is the manifest's fall_base_height
 - livingproof-evaluator-scenario run manifest: configuration.profile.locomotion.nominal_base_height and fall_base_height
 
