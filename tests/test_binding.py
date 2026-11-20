@@ -228,3 +228,16 @@ def test_the_guide_is_in_the_manual_and_the_readme_no_longer_calls_bindings_desi
 def test_the_schema_observable_list_is_exactly_the_vocabulary_terms() -> None:
     enum = schema()["$defs"]["observable"]["enum"]
     assert enum == [term["id"] for term in VOCABULARY["terms"]]
+
+
+def test_no_example_step_states_the_fall_threshold_relative_to_nominal() -> None:
+    """The spec grades the absolute fall_height; nominal is reference only (PR 52)."""
+    checked = 0
+    for path in sorted(EXAMPLES.rglob("*.json")):
+        text = path.read_text()
+        assert "60%" not in text and "of nominal" not in text, str(path.relative_to(ROOT))
+        for step in load_json(path).get("scenario", {}).get("scenario", {}).get("steps", []):
+            if step.get("observable") == "base_height":
+                assert step["text"] == "the base height stays above the fall height", path
+                checked += 1
+    assert checked >= 3
