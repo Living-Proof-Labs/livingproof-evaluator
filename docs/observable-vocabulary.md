@@ -57,6 +57,6 @@ Scenario text calls it "body contact".
 
 Used in:
 
-- examples/binding/merged/unitree-g1-stock-livingproof-sim-mujoco.json: body_contact is listed as unbound, as the recording has no contact channel yet
+- examples/binding/merged/unitree-g1-stock-livingproof-sim-mujoco.json: body_contact is bound to the /wall_contacts channel the recording now carries
 - livingproof-evaluator-scenario checks.py: fail_not_empty reads wall_contacts, the hallway metric for this term
 - robot-capability-specs walk-hallway README: wall_contacts must be empty

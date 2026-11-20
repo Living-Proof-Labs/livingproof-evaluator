@@ -21,8 +21,15 @@
       "fields": {"z": "pose.position.z"},
       "frame": "world",
       "nominal": {"value": 0.78, "unit": "meters", "source": "measured", "ref": "placeholder: unitree-g1/stock"}
+    },
+    "body_contact": {
+      "topic": "/wall_contacts",
+      "encoding": "json",
+      "schema": "livingproof.WallContact",
+      "fields": {"wall": "wall", "start": "start", "end": "end", "depth": "depth"},
+      "frame": "world"
     }
   },
-  "bound_observables": ["base", "base_height"],
-  "unbound": [{"id": "body_contact", "reason": "producer-does-not-carry"}]
+  "bound_observables": ["base", "base_height", "body_contact"],
+  "unbound": []
 }
