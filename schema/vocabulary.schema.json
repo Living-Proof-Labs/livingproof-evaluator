@@ -35,7 +35,11 @@
         "name": {"$ref": "#/$defs/text", "description": "The term as scenario text reads it, for example base height."},
         "meaning": {"$ref": "#/$defs/text"},
         "frame": {"$ref": "#/$defs/text", "description": "What the value is measured in or against."},
-        "units": {"$ref": "#/$defs/text"},
+        "units": {
+          "type": "string",
+          "pattern": "^(?:(?:meters|seconds|for|in|and|position|sample|time|depth|start|end),? ?)+$",
+          "description": "Units in words, from a closed set: meters and seconds. A term that needs another unit adds it here first."
+        },
         "nominal": {
           "type": "object",
           "additionalProperties": false,
@@ -45,11 +49,7 @@
               "enum": ["never", "per-robot-configuration"],
               "description": "never: the term has no per-robot nominal. per-robot-configuration: a nominal value exists for each robot and configuration."
             },
-            "rule": {"$ref": "#/$defs/text"},
-            "current_implementation": {
-              "$ref": "#/$defs/text",
-              "description": "How the evaluator grades today when that differs from the rule, so the gap is visible. Optional."
-            }
+            "rule": {"$ref": "#/$defs/text"}
           }
         },
         "metrics": {

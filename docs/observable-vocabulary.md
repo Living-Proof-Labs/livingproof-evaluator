@@ -1,6 +1,6 @@
 # Observable vocabulary
 
-This is the vocabulary a scenario step may use for the hallway: the terms for what is observed about the robot. A hallway scenario is written from these terms, plus places (such as `exit` and the centreline) and numbers.
+This is the vocabulary a scenario step may use for the hallway: the terms for what is observed about the robot. A hallway scenario is written from these terms, plus places (such as `exit` and the centerline) and numbers.
 
 The vocabulary is deliberately small. It holds only the terms the hallway scenario and its fixtures use today. It is not an ontology: a term is added when a scenario fixture uses it, not before. Feet are not defined: a term goes in when a fixture or check first observes it.
 
@@ -20,9 +20,9 @@ Each term has four parts:
 Scenario text calls it "base".
 
 - **Meaning**: The robot's base origin: the one body point a hallway scenario tracks. Its position is read at each recorded sample.
-- **Frame**: The hallway world frame: x along the route, y sideways with the centreline at y = 0, z up from the floor.
-- **Units**: metres for position, seconds for sample time
-- **Nominal** (never): The base position has no per-robot nominal. A scenario states places (exit, centreline) and numbers, not a nominal.
+- **Frame**: The world frame, in meters: x and y along the floor, z up from the floor. Lateral distance is measured from the route centerline: the line y = 0 in the straight hallway, the route polyline in the corner worlds.
+- **Units**: meters for position, seconds for sample time
+- **Nominal** (never): The base position has no per-robot nominal. A scenario states places (exit, centerline) and numbers, not a nominal.
 
 Used in:
 
@@ -35,14 +35,13 @@ Used in:
 Scenario text calls it "base height".
 
 - **Meaning**: How high the base origin is above the floor. The hallway grades its lowest value over the trial.
-- **Frame**: The hallway world frame, measured up from the floor (z = 0).
-- **Units**: metres
-- **Nominal** (per-robot-configuration): A spec states the fall threshold relative to the robot's nominal: base_height above 60% of nominal, so specs stay robot-neutral and the robot binding supplies the nominal (the per-robot nominal_base_height, the measured standing base height in metres). The 60% is a tuning value that can change.
-- **Current implementation**: Until the evaluator reads bindings, it grades min_base_height against the manifest's absolute fall_base_height, a per-configuration value in metres. For the G1 that is 0.5 m against a nominal of 0.78 m, about 64% rather than 60%.
+- **Frame**: The world frame, measured up from the floor (z = 0).
+- **Units**: meters
+- **Nominal** (per-robot-configuration): The fall threshold is the absolute fall_height that the walk-hallway spec grades against: the configuration profile's locomotion.fall_base_height, in meters (0.5 m for the G1). The nominal, the per-robot nominal_base_height, is the measured standing base height in meters (0.78 m for the G1 stock configuration). It is reference data only and is not the grading threshold. A threshold stated as a ratio of nominal would be a separate spec change.
 
 Used in:
 
-- examples/scenario/graded/request.json: step stay-upright (above 60% of nominal)
+- examples/scenario/graded/request.json: step stay-upright (the step text states the threshold relative to nominal; the spec grades the absolute fall_height)
 - livingproof-evaluator-scenario checks.py: fail_less grades min_base_height against fall_height, which is the manifest's fall_base_height
 - livingproof-evaluator-scenario run manifest: configuration.profile.locomotion.nominal_base_height and fall_base_height
 
@@ -50,11 +49,11 @@ Used in:
 
 Scenario text calls it "body contact".
 
-- **Meaning**: Contact between the robot body and a named environment surface. The scenario names the surface, for example a hallway wall. Each contact has its surface, a start time, an end time and a depth, the penetration at real-geometry signed distance at or below zero.
+- **Meaning**: Contact between the robot body and a named environment surface. The scenario names the surface, for example a hallway wall. Each contact has its surface, a start time, an end time and a depth: how far the farthest collision part reaches past the surface's inner face, the largest while the contact lasts. That depth is an intrusion, not a penetration depth.
 - **Frame**: The scenario world: the world names each surface (the hallway has wall-left and wall-right) and times run from the start of the trial.
-- **Units**: depth in metres, start and end in seconds
+- **Units**: depth in meters, start and end in seconds
 - **Nominal** (never): Body contact has no per-robot nominal. The hallway rule is that no contact with a hallway wall is recorded, a limit of zero.
-- **Evaluator metric** `wall_contacts`: The hallway evaluator's wall_contacts metric is the count of body_contact events with hallway walls.
+- **Evaluator metric** `wall_contacts`: The hallway evaluator's wall_contacts metric is the list of body_contact events with hallway walls, each {wall, start, end, depth}. The hallway passes when the list is empty.
 
 Used in:
 
