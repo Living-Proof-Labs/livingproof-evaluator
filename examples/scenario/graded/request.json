@@ -18,7 +18,7 @@
     {
       "role": "binding",
       "uri": "binding.json",
-      "sha256": "edf1a4c94172282a52287148d1f0e27bf4aecce27cf7a47e27342be2201099e4"
+      "sha256": "2a10c161750085c813675ccf00f8768efa3d288bf8a409fc7f264f58b5335bc6"
     },
     {
       "role": "scenario",
@@ -65,8 +65,7 @@
     "binding": {
       "bound_observables": [
         "base",
-        "base_height",
-        "body_contact"
+        "base_height"
       ]
     }
   }

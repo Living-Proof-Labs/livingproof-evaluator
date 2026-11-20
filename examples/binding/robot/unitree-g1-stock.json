@@ -6,7 +6,7 @@
   "observables": {
     "base": {"body": "pelvis"},
     "base_height": {
-      "nominal": {"value": 0.78, "unit": "m", "source": "robot model standing height", "ref": "unitree-g1/stock"}
+      "nominal": {"value": 0.78, "unit": "m", "source": "placeholder: the measured standing base height, set when the robot binding is published", "ref": "placeholder: unitree-g1/stock"}
     }
   }
 }

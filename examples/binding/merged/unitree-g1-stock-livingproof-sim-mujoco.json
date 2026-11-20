@@ -4,7 +4,7 @@
   "trial_id": "trial-01",
   "robot": {"id": "unitree-g1", "configuration": "stock"},
   "producer": {"id": "livingproof-sim-mujoco"},
-  "recording": {"uri": "run/trial-01.mcap", "sha256": "626cec42d318ff68536fc03f1ac8191b8759d839f367c845088271dbfa34dac9"},
+  "recording": {"uri": "https://example.invalid/run/trial-01.mcap", "sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
   "observables": {
     "base": {
       "topic": "/base_pose",
@@ -20,7 +20,7 @@
       "schema": "foxglove.PoseInFrame",
       "fields": {"z": "pose.position.z"},
       "frame": "world",
-      "nominal": {"value": 0.78, "unit": "m", "source": "robot model standing height", "ref": "unitree-g1/stock"}
+      "nominal": {"value": 0.78, "unit": "m", "source": "placeholder: the measured standing base height, set when the robot binding is published", "ref": "placeholder: unitree-g1/stock"}
     }
   },
   "bound_observables": ["base", "base_height"],

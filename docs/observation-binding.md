@@ -2,7 +2,7 @@
 
 The observation binding says where each observable of the [observable vocabulary](observable-vocabulary.md) is found in one MCAP recording. Its format is `livingproof-observation-binding/1.0.0`, checked by [`schema/binding.schema.json`](../schema/binding.schema.json).
 
-The scope is what the existing fixtures and checks need: one recording kind (the MCAP that livingproof-sim-mujoco writes, with the `/base_pose` channel) and the three hallway terms. It is not a general channel-mapping language, and it adds no terms: a binding speaks only of terms in the vocabulary.
+The scope is what the existing fixtures and checks need: MCAP recordings only, with no second recording kind (the observation JSON is not described here), and in practice the MCAP that livingproof-sim-mujoco writes, with the `/base_pose` channel and the three hallway terms. It is not a general channel-mapping language, and it adds no terms: a binding speaks only of terms in the vocabulary.
 
 A binding comes in three kinds. The first two are written once, by the owner of the thing they describe. The third is made for each trial.
 
@@ -14,11 +14,15 @@ A binding comes in three kinds. The first two are written once, by the owner of 
 
 An observable is bound only when the producer carries it and the robot supplies what it needs: the base body for `base`, and the `nominal` for a term whose nominal applies per robot configuration. Anything else is `unbound`, with a reason, and is never guessed:
 
-- `producer-does-not-carry`: the producer binding has no channel for the term. Today that is `body_contact`: the recording has no contact channel, so the hallway's `wall_contacts` is not in the MCAP.
+- `producer-does-not-carry`: the producer binding has no channel for the term. Today that is `body_contact`: the recording has no contact channel, so the hallway's `wall_contacts` is not in the MCAP. The sim will add a contacts channel in [livingproof-sim-mujoco#28](https://github.com/Living-Proof-Labs/livingproof-sim-mujoco/issues/28); until then `body_contact` is unbound and no scenario example lists it as bound.
 - `robot-entry-missing`: the producer carries the term but the robot did not supply a required entry.
 
 A step that names an unbound observable is `not evaluated`. A term has one channel; a robot supplies a nominal only for a term whose nominal applies per robot configuration. The tests keep the merged example equal to the merge of the other two, using the reference rules in `tests/binding_rules.py`.
 
 ## What this does not do
 
-It does not define terms (see the vocabulary), pin or verify bindings by reference, or describe recordings other than the livingproof-sim-mujoco MCAP. The `uri` and `sha256` in the example are placeholders for a real recording.
+It does not define terms (see the vocabulary), or describe anything but MCAP recordings. Pinning a binding by an immutable reference is the follow-up [livingproof-verification#100](https://github.com/Living-Proof-Labs/livingproof-verification/issues/100); the digest of the binding itself is not part of this format yet.
+
+## Placeholders
+
+The examples hold placeholder values, marked so a reader and a test can see them, and still valid against the schema: the recording `uri` is on `example.invalid`, the recording `sha256` is all zeros, and the nominal's `source` and `ref` start with `placeholder:`. Real values arrive with the published robot and producer bindings. The robot's base body (`pelvis` for the G1) belongs to the robot binding because it comes from the robot's description, which every producer shares.
