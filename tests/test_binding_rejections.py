@@ -3,10 +3,9 @@
 
 test_binding.py mutates the merged example. A robot or producer binding with an unknown term, a
 missing nominal source or unit, a missing channel field or an extra entry is rejected by the same
-schema; this pins that for those two kinds. The xfail cases are gaps the schema and merge rules
+schema; this pins that for those two kinds. These cases were gaps the schema and merge rules
 do not close yet: a unit that disagrees with the vocabulary, a frame that is not the vocabulary's,
-a base without its y field, and a nominal on a term whose nominal never applies. Each is strict:
-it starts passing when the gap is closed, and then the marker must go.
+a base without its y field, and a nominal on a term whose nominal never applies. They are now plain tests.
 """
 
 from __future__ import annotations
@@ -80,7 +79,6 @@ GAPS = {
 }
 
 
-@pytest.mark.xfail(strict=True, reason="neither the schema nor the merge rules check these yet")
 @pytest.mark.parametrize("name", GAPS)
 def test_a_merged_binding_that_contradicts_its_term_is_rejected(name: str) -> None:
     broken = copy.deepcopy(MERGED)
@@ -91,10 +89,7 @@ def test_a_merged_binding_that_contradicts_its_term_is_rejected(name: str) -> No
         assert merged_problems(broken, VOCABULARY), "the merge rules must reject it"
 
 
-@pytest.mark.xfail(
-    strict=True, reason="a robot binding may carry a nominal for a term that has none"
-)
 def test_a_robot_binding_rejects_a_nominal_on_a_term_whose_nominal_never_applies() -> None:
     broken = copy.deepcopy(ROBOT)
-    broken["observables"]["base"]["nominal"] = {"value": 1, "unit": "m", "source": "x"}
+    broken["observables"]["base"]["nominal"] = {"value": 1, "unit": "meters", "source": "measured"}
     assert_invalid(SCHEMA, broken)

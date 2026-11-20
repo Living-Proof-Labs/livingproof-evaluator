@@ -62,7 +62,8 @@ def test_the_robot_binding_owns_the_base_body_and_the_nominal() -> None:
     robot = load_json(ROBOT)
     assert robot["observables"]["base"] == {"body": "pelvis"}
     nominal = robot["observables"]["base_height"]["nominal"]
-    assert (nominal["value"], nominal["unit"]) == (0.78, "m")
+    assert (nominal["value"], nominal["unit"]) == (0.78, "meters")
+    assert nominal["source"] == "measured"
     assert robot["configuration"] == "stock"
     # Only a term whose nominal applies per robot configuration carries a nominal.
     for name, entry in robot["observables"].items():
@@ -140,7 +141,7 @@ def test_placeholders_are_plainly_marked_and_schema_valid() -> None:
     assert merged["recording"]["sha256"] == "0" * 64
     for path in (ROBOT, MERGED):
         nominal = load_json(path)["observables"]["base_height"]["nominal"]
-        assert nominal["source"].startswith("placeholder:"), path
+        assert nominal["source"] == "measured", path
         assert nominal["ref"].startswith("placeholder:"), path
     text = (ROOT / "docs" / "observation-binding.md").read_text()
     assert "example.invalid" in text and "placeholder" in text
@@ -242,3 +243,50 @@ def test_no_example_step_states_the_fall_threshold_relative_to_nominal() -> None
                 assert step["text"] == "the base height stays above the fall height", path
                 checked += 1
     assert checked >= 3
+
+
+def _each_kind():
+    return {"robot": doc(ROBOT), "producer": doc(PRODUCER), "merged": doc(MERGED)}
+
+
+@pytest.mark.parametrize("kind", ["producer", "merged"])
+def test_a_channel_entry_takes_no_extra_property(kind: str) -> None:
+    broken = _each_kind()[kind]
+    broken["observables"]["base"]["extra"] = 1
+    assert_invalid(schema(), broken)
+
+
+@pytest.mark.parametrize("kind", ["robot", "merged"])
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda n: n.pop("unit"),
+        lambda n: n.pop("source"),
+        lambda n: n.update(value=-0.1),
+        lambda n: n.update(unit="cm"),
+        lambda n: n.update(extra=1),
+    ],
+)
+def test_a_nominal_needs_its_unit_and_source_and_a_positive_value_in_meters(kind, mutate) -> None:
+    broken = _each_kind()[kind]
+    mutate(broken["observables"]["base_height"]["nominal"])
+    assert_invalid(schema(), broken)
+
+
+@pytest.mark.parametrize("kind", ["producer", "merged"])
+@pytest.mark.parametrize("field", ["topic", "frame"])
+def test_a_channel_entry_needs_its_topic_and_frame(kind: str, field: str) -> None:
+    broken = _each_kind()[kind]
+    del broken["observables"]["base_height"][field]
+    assert_invalid(schema(), broken)
+
+
+@pytest.mark.parametrize("kind", ["producer", "merged"])
+def test_the_frame_and_fields_are_the_vocabularys_for_every_bound_term(kind: str) -> None:
+    for name, fields in (("base", {"x", "y"}), ("base_height", {"z"})):
+        good = _each_kind()[kind]
+        assert good["observables"][name]["frame"] == "world"
+        assert set(good["observables"][name]["fields"]) == fields
+        extra = _each_kind()[kind]
+        extra["observables"][name]["fields"]["q"] = "pose.position.q"
+        assert_invalid(schema(), extra)
