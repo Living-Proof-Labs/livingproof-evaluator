@@ -1,0 +1,12 @@
+{
+  "format": "livingproof-observation-binding/1.0.0",
+  "kind": "robot",
+  "robot": {"id": "unitree-g1"},
+  "configuration": "stock",
+  "observables": {
+    "base": {"body": "pelvis"},
+    "base_height": {
+      "nominal": {"value": 0.78, "unit": "meters", "source": "measured", "ref": "placeholder: unitree-g1/stock"}
+    }
+  }
+}

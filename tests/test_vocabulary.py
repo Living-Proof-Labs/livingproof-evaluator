@@ -42,6 +42,13 @@ def used_observables() -> dict[str, set[str]]:
         for step in scenario.get("scenario", {}).get("steps", []):
             if step.get("bound") is True:
                 used.setdefault(step["observable"], set()).add(where)
+    # The binding examples name body_contact as unbound: a fixture that observes it by name.
+    merged = EXAMPLES / "binding" / "merged"
+    for path in sorted(merged.glob("*.json")):
+        document = load_json(path)
+        where = str(path.relative_to(ROOT))
+        for name in [*document["observables"], *(item["id"] for item in document["unbound"])]:
+            used.setdefault(name, set()).add(where)
     return used
 
 

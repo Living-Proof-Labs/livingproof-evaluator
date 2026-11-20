@@ -1,0 +1,28 @@
+{
+  "format": "livingproof-observation-binding/1.0.0",
+  "kind": "merged",
+  "trial_id": "trial-01",
+  "robot": {"id": "unitree-g1", "configuration": "stock"},
+  "producer": {"id": "livingproof-sim-mujoco"},
+  "recording": {"uri": "https://example.invalid/run/trial-01.mcap", "sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
+  "observables": {
+    "base": {
+      "topic": "/base_pose",
+      "encoding": "json",
+      "schema": "foxglove.PoseInFrame",
+      "fields": {"x": "pose.position.x", "y": "pose.position.y"},
+      "frame": "world",
+      "body": "pelvis"
+    },
+    "base_height": {
+      "topic": "/base_pose",
+      "encoding": "json",
+      "schema": "foxglove.PoseInFrame",
+      "fields": {"z": "pose.position.z"},
+      "frame": "world",
+      "nominal": {"value": 0.78, "unit": "meters", "source": "measured", "ref": "placeholder: unitree-g1/stock"}
+    }
+  },
+  "bound_observables": ["base", "base_height"],
+  "unbound": [{"id": "body_contact", "reason": "producer-does-not-carry"}]
+}

@@ -3,8 +3,8 @@
 Start with the [repository overview](../README.md), then read [run integrity](run-integrity.md)
 and the [evaluator descriptor](evaluator-descriptor.md). This repository defines wire
 contracts; it does not ship an evaluator implementation. The hallway observable vocabulary is
-published in [observable vocabulary](observable-vocabulary.md); observation bindings
-remain design work.
+published in [observable vocabulary](observable-vocabulary.md), and the observation
+binding format in [observation binding](observation-binding.md).
 
 Use the generated **Contracts** reference to inspect the actual schemas and example
 messages. Example results are not evidence of robot capability; the run-integrity

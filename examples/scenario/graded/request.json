@@ -18,12 +18,12 @@
     {
       "role": "binding",
       "uri": "binding.json",
-      "sha256": "edf1a4c94172282a52287148d1f0e27bf4aecce27cf7a47e27342be2201099e4"
+      "sha256": "2a10c161750085c813675ccf00f8768efa3d288bf8a409fc7f264f58b5335bc6"
     },
     {
       "role": "scenario",
       "uri": "scenario.json",
-      "sha256": "0e5fc30384d9cfe199147b0bfc92bd33465f13c96df747aef461dbe472c16a61"
+      "sha256": "c48ef2292cf252d4751a0f0f0a2fbb75bcb736d166844aa9cf0a6371662f4de2"
     },
     {
       "role": "manifest",
@@ -55,7 +55,7 @@
         },
         {
           "id": "stay-upright",
-          "text": "the base height stays above 60% of nominal",
+          "text": "the base height stays above the fall height",
           "known": true,
           "observable": "base_height",
           "bound": true
@@ -65,8 +65,7 @@
     "binding": {
       "bound_observables": [
         "base",
-        "base_height",
-        "body_contact"
+        "base_height"
       ]
     }
   }

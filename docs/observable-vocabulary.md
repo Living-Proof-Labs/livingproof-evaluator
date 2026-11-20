@@ -41,7 +41,7 @@ Scenario text calls it "base height".
 
 Used in:
 
-- examples/scenario/graded/request.json: step stay-upright (the step text states the threshold relative to nominal; the spec grades the absolute fall_height)
+- examples/scenario/graded/request.json: step stay-upright (the step text names the fall height, the absolute fall_height the spec grades)
 - livingproof-evaluator-scenario checks.py: fail_less grades min_base_height against fall_height, which is the manifest's fall_base_height
 - livingproof-evaluator-scenario run manifest: configuration.profile.locomotion.nominal_base_height and fall_base_height
 
@@ -57,6 +57,6 @@ Scenario text calls it "body contact".
 
 Used in:
 
-- examples/scenario/graded/request.json: bound_observables lists body_contact
+- examples/binding/merged/unitree-g1-stock-livingproof-sim-mujoco.json: body_contact is listed as unbound, as the recording has no contact channel yet
 - livingproof-evaluator-scenario checks.py: fail_not_empty reads wall_contacts, the hallway metric for this term
 - robot-capability-specs walk-hallway README: wall_contacts must be empty
