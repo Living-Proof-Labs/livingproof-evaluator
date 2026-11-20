@@ -299,3 +299,30 @@ def test_the_frame_and_fields_are_the_vocabularys_for_every_bound_term(kind: str
         extra = _each_kind()[kind]
         extra["observables"][name]["fields"]["q"] = "pose.position.q"
         assert_invalid(schema(), extra)
+
+
+def _claims_an_unbound_term(request: dict, merged: dict) -> list[str]:
+    claimed = request.get("scenario", {}).get("binding", {}).get("bound_observables", [])
+    return [name for name in claimed if name not in merged["bound_observables"]]
+
+
+def test_no_example_request_claims_an_observable_the_merged_binding_leaves_unbound() -> None:
+    """Restores the guard PR 56 removed (it was pinned to body_contact being unbound).
+
+    The invariant is the general one: an example request may only claim what the merged example binds.
+    """
+    merged = load_json(MERGED)
+    requests = sorted(EXAMPLES.rglob("request.json"))
+    bad = {
+        str(path.relative_to(ROOT)): found
+        for path in requests
+        if (found := _claims_an_unbound_term(load_json(path), merged))
+    }
+    assert requests and bad == {}
+
+
+def test_the_example_guard_catches_a_claim_the_merged_binding_does_not_bind() -> None:
+    merged = copy.deepcopy(load_json(MERGED))
+    merged["bound_observables"].remove("body_contact")
+    request = {"scenario": {"binding": {"bound_observables": ["base", "body_contact"]}}}
+    assert _claims_an_unbound_term(request, merged) == ["body_contact"]
