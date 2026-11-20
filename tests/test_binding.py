@@ -83,8 +83,20 @@ def test_the_producer_binding_names_the_channel_and_fields_the_recording_has() -
     assert pose["frame"] == "world"
     height = producer["observables"]["base_height"]
     assert height["topic"] == "/base_pose" and height["fields"] == {"z": "pose.position.z"}
-    # The recording carries no contact channel today: body_contact is not bound.
-    assert "body_contact" not in producer["observables"]
+    # The contacts channel livingproof-sim-mujoco writes (#28): one message per contact event.
+    contact = producer["observables"]["body_contact"]
+    assert (contact["topic"], contact["encoding"], contact["schema"]) == (
+        "/wall_contacts",
+        "json",
+        "livingproof.WallContact",
+    )
+    assert contact["fields"] == {
+        "wall": "wall",
+        "start": "start",
+        "end": "end",
+        "depth": "depth",
+    }
+    assert contact["frame"] == "world"
     # Producer-owned entries never carry robot-owned ones.
     assert all({"body", "nominal"}.isdisjoint(entry) for entry in producer["observables"].values())
 
@@ -99,8 +111,8 @@ def test_the_merged_binding_is_the_merge_of_the_robot_and_producer_bindings() ->
         merged["recording"],
     )
     assert merged == expected
-    assert merged["bound_observables"] == ["base", "base_height"]
-    assert merged["unbound"] == [{"id": "body_contact", "reason": PRODUCER_MISSING}]
+    assert merged["bound_observables"] == ["base", "base_height", "body_contact"]
+    assert merged["unbound"] == []
     assert merged_problems(merged, VOCABULARY) == []
 
 
@@ -112,19 +124,15 @@ def test_a_bound_observable_has_its_channel_fields_and_the_robot_entries_it_need
             assert need in entry, (name, need)
 
 
-def test_no_example_request_claims_body_contact_is_bound() -> None:
-    """The recording has no contact channel yet (livingproof-sim-mujoco#28): it is unbound."""
-    requests = sorted(EXAMPLES.rglob("request.json"))
-    claims = [
-        str(path.relative_to(ROOT))
-        for path in requests
-        if "body_contact"
-        in (load_json(path).get("scenario", {}).get("binding", {}).get("bound_observables", []))
-    ]
-    assert requests and claims == []
+def test_body_contact_is_bound_to_the_wall_contacts_channel_in_the_merged_example() -> None:
+    """The sim writes the contacts channel (livingproof-sim-mujoco#28), so the term is bound."""
     merged = load_json(MERGED)
-    assert "body_contact" not in merged["bound_observables"]
-    assert [item["id"] for item in merged["unbound"]] == ["body_contact"]
+    entry = merged["observables"]["body_contact"]
+    assert entry["topic"] == "/wall_contacts"
+    assert entry == load_json(PRODUCER)["observables"]["body_contact"]
+    assert "body_contact" in merged["bound_observables"]
+    text = " ".join((ROOT / "docs" / "observation-binding.md").read_text().split())
+    assert "/wall_contacts" in text and "until then `body_contact` is unbound" not in text
 
 
 def test_the_binding_is_for_mcap_recordings_only() -> None:
@@ -189,7 +197,8 @@ def test_the_schema_rejects_a_malformed_merged_binding(mutate) -> None:
         lambda d: d["observables"]["base"].update(nominal={"value": 1, "unit": "m"}),
         lambda d: d["bound_observables"].reverse(),
         lambda d: d["unbound"].append({"id": "base", "reason": PRODUCER_MISSING}),
-        lambda d: d["unbound"].clear(),
+        lambda d: d["unbound"].append({"id": "body_contact", "reason": PRODUCER_MISSING}),
+        lambda d: d["bound_observables"].remove("body_contact"),
     ],
 )
 def test_the_merge_rules_reject_an_ambiguous_or_missing_entry(mutate) -> None:
