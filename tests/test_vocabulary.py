@@ -8,7 +8,6 @@ no broader ontology, and no mapping to MCAP channels or to a robot model.
 
 from __future__ import annotations
 
-
 from support import EXAMPLES, ROOT, SCHEMA_ROOT, assert_invalid, assert_valid, load_json
 
 SCHEMA = SCHEMA_ROOT / "vocabulary.schema.json"
