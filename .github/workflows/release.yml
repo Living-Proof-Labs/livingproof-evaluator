@@ -26,4 +26,4 @@ jobs:
       github.event.workflow_run.head_sha == github.sha
     permissions:
       contents: write
-    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@f849c1bafa858ec8bbc885b880d78b469a4c261a # v9.7.9
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@79de34437cd4252ae1c81809ec4702f283280b91 # v9.8.1

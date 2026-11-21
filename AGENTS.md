@@ -1,7 +1,7 @@
 # Agent instructions
 
 <!-- renovate: guidelines -->
-[collaboration-guidelines v9.7.9](https://github.com/Living-Proof-Labs/collaboration-guidelines/blob/v9.7.9/AGENTS.md)
+[collaboration-guidelines v9.8.1](https://github.com/Living-Proof-Labs/collaboration-guidelines/blob/v9.8.1/AGENTS.md)
 applies, with its procedures, to every change in this repository.
 Local additions: this repository holds the evaluator contract only (observable vocabulary, observation-binding format, evaluator I/O, and evaluator identity). It does not implement a particular evaluator or store robot- or producer-specific bindings. Original repository content is Apache-2.0.
 Substantive changes stay in a draft PR until independent review.
