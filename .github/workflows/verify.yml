@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-# Pull requests and each push to main. A successful main run can trigger Release.
-# This workflow does not publish Pages.
+# Pull requests build a read-only preview. A verified current-main push can release
+# its exact sealed manual, then deploy separately with the existing Pages permissions.
 # This repository has no published development image. Until one exists, this job is
 # the documented fallback: GitHub-hosted ubuntu-24.04, the pinned uv setup action,
 # and Task 3.54.0, running the same `task setup` and `task verify` commands as a
@@ -91,3 +91,67 @@ jobs:
           echo "$ACTIONLINT_SHA256  $RUNNER_TEMP/$archive" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" actionlint
           "$RUNNER_TEMP/actionlint" -color
+  version:
+    if: github.event_name == 'push' || github.base_ref == 'main'
+    permissions:
+      contents: read
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release-candidate.yml@ee2a23c733b2dee6302c4aca72e210970ec8b44a # v9.9.2
+  manual:
+    needs: version
+    if: >-
+      !cancelled() &&
+      (needs.version.result == 'success' ||
+       (github.event_name == 'pull_request' && github.base_ref != 'main' &&
+        needs.version.result == 'skipped'))
+    permissions:
+      contents: read
+    uses: ./.github/workflows/manual.yml
+    with:
+      version: ${{ needs.version.outputs.semver-version }}
+      commit: ${{ needs.version.outputs.commit || github.event.pull_request.head.sha }}
+      run: ${{ needs.version.outputs.run-id || github.run_id }}
+      attempt: ${{ needs.version.outputs.run-attempt || github.run_attempt }}
+  release:
+    needs: [verify, version, manual]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.verify.result == 'success' &&
+      needs.version.result == 'success' &&
+      needs.manual.result == 'success' &&
+      needs.version.outputs.version != '' &&
+      needs.version.outputs.version == needs.version.outputs.semver-version &&
+      needs.version.outputs.git-tag == format('v{0}', needs.version.outputs.version) &&
+      needs.version.outputs.commit == github.sha &&
+      needs.version.outputs.run-id == github.run_id &&
+      needs.version.outputs.run-attempt == github.run_attempt &&
+      needs.manual.outputs.artifact-id != '' &&
+      needs.manual.outputs.digest != ''
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+      commit: ${{ needs.version.outputs.commit }}
+  deploy-manual:
+    needs: [version, manual, release]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.release.outputs.published == 'true' &&
+      needs.release.outputs.git-tag == needs.version.outputs.git-tag &&
+      needs.release.outputs.version == needs.version.outputs.version &&
+      needs.release.outputs.commit == needs.version.outputs.commit
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-manual.yml
+    with:
+      release_tag: ${{ needs.release.outputs.git-tag }}
+      version: ${{ needs.release.outputs.version }}
+      commit: ${{ needs.release.outputs.commit }}
+      run: ${{ needs.version.outputs.run-id }}
+      attempt: ${{ needs.version.outputs.run-attempt }}
+      artifact_id: ${{ needs.manual.outputs.artifact-id }}
+      digest: ${{ needs.manual.outputs.digest }}

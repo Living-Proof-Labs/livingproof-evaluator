@@ -350,9 +350,11 @@ def _workflow_texts() -> list[tuple[str, str]]:
     ]
 
 
-def _manual_guard() -> tuple[str, dict[str, str], list[list[str]]]:
-    text = (WORKFLOWS / "manual.yml").read_text()
-    job = next(item for item in _jobs(text) if item["name"] == "deploy")
+def _manual_guard(
+    filename="deploy-manual.yml", job_name="deploy"
+) -> tuple[str, dict[str, str], list[list[str]]]:
+    text = (WORKFLOWS / filename).read_text()
+    job = next(item for item in _jobs(text) if item["name"] == job_name)
     lines = job["lines"]
     assert isinstance(lines, list)
     steps = _steps(lines)
@@ -369,9 +371,9 @@ def test_repository_workflows_authenticate_every_main_freshness_read() -> None:
             calls.append(name)
         problems.extend(freshness_problems(name, text))
     assert problems == [], "\n".join(problems)
-    assert calls == ["manual.yml"]
+    assert calls == ["deploy-manual.yml", "release.yml"]
 
-    text = (WORKFLOWS / "manual.yml").read_text()
+    text = (WORKFLOWS / "deploy-manual.yml").read_text()
     job = next(item for item in _jobs(text) if item["name"] == "deploy")
     lines = job["lines"]
     assert isinstance(lines, list)
@@ -381,25 +383,28 @@ def test_repository_workflows_authenticate_every_main_freshness_read() -> None:
         "id-token": "write",
     }
     script, env, steps = _manual_guard()
-    assert len(steps) == 2
-    assert "Require current main inside deployment lock" in "\n".join(steps[0])
+    assert "Require current main inside deployment lock" in "\n".join(steps[-2])
     assert env["GH_TOKEN"] == "${{ github.token }}"
     assert env["CANDIDATE"] == "${{ github.sha }}"
     assert "gh api" in script
     assert FRESHNESS_API in script
     assert "urlopen" not in script
     assert 'test "$current" = "$CANDIDATE"' in script
-    deploy = "\n".join(steps[1])
+    deploy = "\n".join(steps[-1])
     assert "actions/deploy-pages@" in deploy
     assert "continue-on-error" not in deploy
-    assert "continue-on-error" not in "\n".join(steps[0])
+    assert "continue-on-error" not in "\n".join(steps[-2])
 
 
 def test_manual_freshness_read_fails_when_the_workflow_token_is_removed() -> None:
-    text = (WORKFLOWS / "manual.yml").read_text()
-    stripped = text.replace("          GH_TOKEN: ${{ github.token }}\n", "", 1)
+    text = (WORKFLOWS / "deploy-manual.yml").read_text()
+    stripped = text.replace(
+        "          GH_TOKEN: ${{ github.token }}\n          CANDIDATE:",
+        "          CANDIDATE:",
+        1,
+    )
     assert stripped != text
-    problems = freshness_problems("manual.yml", stripped)
+    problems = freshness_problems("deploy-manual.yml", stripped)
     assert any("without authentication" in problem for problem in problems), problems
 
 
@@ -432,9 +437,11 @@ def test_contents_write_fails_even_when_the_read_sends_a_token() -> None:
 
 
 def _run_guard(
-    tmp_path: Path, *, remote_sha: str, gh_status: int
+    tmp_path: Path, *, remote_sha: str, gh_status: int, prewriter: bool = False
 ) -> tuple[subprocess.CompletedProcess[str], dict | None]:
-    script, env_map, _steps = _manual_guard()
+    script, env_map, _steps = (
+        _manual_guard("release.yml", "current-main") if prewriter else _manual_guard()
+    )
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     fake = bin_dir / "gh"
@@ -449,8 +456,10 @@ def _run_guard(
         "PYTHONDONTWRITEBYTECODE": "1",
     }
     for name, value in env_map.items():
-        env[name] = value.replace("${{ github.token }}", "workflow-token").replace(
-            "${{ github.sha }}", EXPECTED_SHA
+        env[name] = (
+            value.replace("${{ github.token }}", "workflow-token")
+            .replace("${{ github.sha }}", EXPECTED_SHA)
+            .replace("${{ inputs.commit }}", EXPECTED_SHA)
         )
     result = subprocess.run(
         ["bash", "-e", "-o", "pipefail", "-c", script],
@@ -472,10 +481,13 @@ def _run_guard(
         (EXPECTED_SHA, 1, 1),
     ],
 )
+@pytest.mark.parametrize("prewriter", [False, True], ids=["pre-Pages", "pre-writer"])
 def test_deploy_guard_aborts_when_main_moved_or_the_read_fails(
-    tmp_path: Path, remote_sha: str, gh_status: int, expected_code: int
+    tmp_path: Path, remote_sha: str, gh_status: int, expected_code: int, prewriter: bool
 ) -> None:
-    result, record = _run_guard(tmp_path, remote_sha=remote_sha, gh_status=gh_status)
+    result, record = _run_guard(
+        tmp_path, remote_sha=remote_sha, gh_status=gh_status, prewriter=prewriter
+    )
     assert result.returncode == expected_code, result.stderr
     assert record is not None, result.stderr
     assert record["token"] == "workflow-token"

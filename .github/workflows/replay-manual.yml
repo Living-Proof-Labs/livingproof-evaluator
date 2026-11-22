@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: Apache-2.0
+name: Retry published evaluator manual
+on:
+  workflow_dispatch:
+    inputs:
+      replay_tag:
+        description: Existing published stable tag at current main, for Pages delivery only
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  version:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release-candidate.yml@ee2a23c733b2dee6302c4aca72e210970ec8b44a # v9.9.2
+    with:
+      replay-tag: ${{ inputs.replay_tag }}
+  manual:
+    needs: version
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.replay_tag == format('v{0}', needs.version.outputs.semver-version) &&
+      needs.version.outputs.commit == github.sha &&
+      needs.version.outputs.run-id == github.run_id &&
+      needs.version.outputs.run-attempt == github.run_attempt
+    permissions:
+      contents: read
+    uses: ./.github/workflows/manual.yml
+    with:
+      version: ${{ needs.version.outputs.semver-version }}
+      commit: ${{ needs.version.outputs.commit }}
+      run: ${{ needs.version.outputs.run-id }}
+      attempt: ${{ needs.version.outputs.run-attempt }}
+  deploy-manual:
+    needs: [version, manual]
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.replay_tag == format('v{0}', needs.version.outputs.semver-version) &&
+      needs.version.outputs.commit == github.sha &&
+      needs.version.outputs.run-id == github.run_id &&
+      needs.version.outputs.run-attempt == github.run_attempt &&
+      needs.manual.outputs.artifact-id != '' &&
+      needs.manual.outputs.digest != ''
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-manual.yml
+    with:
+      release_tag: ${{ inputs.replay_tag }}
+      version: ${{ needs.version.outputs.semver-version }}
+      commit: ${{ needs.version.outputs.commit }}
+      run: ${{ needs.version.outputs.run-id }}
+      attempt: ${{ needs.version.outputs.run-attempt }}
+      artifact_id: ${{ needs.manual.outputs.artifact-id }}
+      digest: ${{ needs.manual.outputs.digest }}

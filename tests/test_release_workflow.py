@@ -73,15 +73,16 @@ def _on_body(text: str) -> str:
 
 def test_release_workflow_triggers_only_after_verify() -> None:
     text = _text(RELEASE)
-    assert _on_body(text) == (
-        "  workflow_run:\n    workflows: [Verify]\n    types: [completed]\n    branches: [main]\n"
-    )
-    assert "name: Verify\n" in _text(VERIFY)
-    release = _job(text, "release")
-    assert "needs:" not in release
-    assert "steps:" not in release
+    assert _on_body(text).startswith("  workflow_call:\n")
+    assert "workflow_run:" not in text and "workflow_dispatch:" not in text
+    verify = _text(VERIFY)
+    assert "name: Verify\n" in verify
+    caller = _job(verify, "release")
+    assert "needs: [verify, version, manual]" in caller
+    assert "uses: ./.github/workflows/release.yml" in caller
+    assert "needs: current-main" in _job(text, "release")
+    assert "steps:" not in _job(text, "release")
     assert "concurrency:" not in text
-    assert "cancel-in-progress:" not in text
 
 
 def _guidelines_pins(text: str) -> list[tuple[str, str]]:
@@ -107,6 +108,7 @@ def test_release_workflow_pins_guidelines_commit_with_tag_comment() -> None:
     sha, tag = pins[0]
     assert len(sha) == 40
     assert set(sha) != {"0"}
+    assert f"semantic-release-candidate.yml@{sha} # {tag}" in _job(_text(VERIFY), "version")
 
     preset = re.search(r"renovate-preset#(v\d+\.\d+\.\d+)\"", _text(RENOVATE))
     assert preset is not None
@@ -135,7 +137,7 @@ def test_guidelines_pin_rejects_mutable_or_mismatched_refs() -> None:
 
 
 def test_release_workflow_references_no_other_secrets() -> None:
-    for path in (RELEASE, VERIFY):
+    for path in RELEASE.parent.glob("*.yml"):
         text = _text(path)
         assert "secrets: inherit" not in text
         names = set(re.findall(r"secrets\.([A-Za-z0-9_]+)", text))
@@ -146,6 +148,7 @@ def test_release_workflow_references_no_other_secrets() -> None:
 def test_release_workflow_permissions_match_the_caller_set() -> None:
     blocks = _permission_blocks(_text(RELEASE))
     assert blocks == [
+        {"contents": "read"},
         {"contents": "read"},
         {"contents": "write"},
     ]
@@ -172,6 +175,10 @@ def test_verify_permissions_are_unchanged() -> None:
     assert blocks == [
         {"contents": "read"},
         {"contents": "read", "checks": "write"},
+        {"contents": "read"},
+        {"contents": "read"},
+        {"contents": "write"},
+        {"contents": "read", "pages": "write", "id-token": "write"},
     ]
 
 
@@ -179,16 +186,41 @@ def test_caller_does_not_override_first_release_version() -> None:
     """The shared engine's first release is 1.0.0 when main has no tag.
 
     semantic-release 25.0.9 (the version pinned by the shared action) sets
-    that version from FIRST_RELEASE in get-next-version.js and does not apply
-    the commit's major, minor, or patch increment until a tag exists. This
-    caller passes no version input and ships no release config of its own.
+    that version from FIRST_RELEASE in get-next-version.js. The caller binds
+    the shared planner's expected result without overriding release policy.
     """
 
     release = _job(_text(RELEASE), "release")
-    assert "with:" not in release
+    assert "expected-version: ${{ inputs.version }}" in release
+    assert "expected-commit: ${{ inputs.commit }}" in release
+    assert "version: ${{ needs.version.outputs.version }}" in _job(_text(VERIFY), "release")
     assert "tagFormat" not in _text(RELEASE)
     for name in RELEASE_CONFIG_NAMES:
         assert not (ROOT / name).exists()
     package_json = ROOT / "package.json"
     if package_json.exists():
         assert "release" not in package_json.read_text()
+
+
+def test_explicit_replay_cannot_reach_the_release_writer() -> None:
+    replay = _text(RELEASE.parent / "replay-manual.yml")
+    assert _on_body(replay).startswith("  workflow_dispatch:\n")
+    assert "workflow_call" not in _on_body(replay)
+    assert re.findall(r"(?m)^    uses: (.*)$", replay) == [
+        _job(_text(VERIFY), "version").split("    uses: ")[1].splitlines()[0],
+        "./.github/workflows/manual.yml",
+        "./.github/workflows/deploy-manual.yml",
+    ]
+    assert "replay-tag: ${{ inputs.replay_tag }}" in _job(replay, "version")
+    assert _permission_blocks(replay) == [
+        {"contents": "read"},
+        {"contents": "read"},
+        {"contents": "read"},
+        {"contents": "read", "pages": "write", "id-token": "write"},
+    ]
+    for name in ("manual", "deploy-manual"):
+        call = _job(replay, name)
+        assert "github.ref == 'refs/heads/main'" in call
+        assert "needs.version.outputs.commit == github.sha" in call
+        assert "needs.version.outputs.run-attempt == github.run_attempt" in call
+    assert "contents: write" not in replay
