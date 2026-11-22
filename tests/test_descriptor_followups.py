@@ -182,6 +182,7 @@ def test_schema_patterns_use_ecma_262_syntax() -> None:
 
 def test_verify_workflow_permissions_are_exactly_contents_read_and_checks_write() -> None:
     text = (SCHEMA_ROOT.parent / ".github" / "workflows" / "verify.yml").read_text()
-    blocks = re.findall(r"(?m)^(\s*)permissions:\n((?:\1  \S.*\n)+)", text)
+    verify = re.search(r"(?m)^  verify:\n((?:    .*\n)+)", text).group(1)
+    blocks = re.findall(r"(?m)^( *)permissions:\n((?:\1  \S.*\n)+)", verify)
     found = [sorted(line.strip() for line in body.splitlines()) for _indent, body in blocks]
-    assert found == [["contents: read"], ["checks: write", "contents: read"]]
+    assert found == [["checks: write", "contents: read"]]

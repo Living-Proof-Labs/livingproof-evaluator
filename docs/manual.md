@@ -29,10 +29,23 @@ Contract tests run in the existing Verify workflow; this manual does not claim
 fresh runtime results or measured software coverage. No executable feature suite
 or released evaluator binary exists here. Historical rendered manuals are not maintained.
 
-The Repository manual workflow retains HTML and individual JUnit checks for 14 days.
-Its trusted main build alone uploads a Pages artifact. A separate deploy job has
-Pages and identity-token write permissions and uses the github-pages environment;
-it rejects stale main revisions within the deployment lock. PR code never deploys.
+The Repository manual job retains HTML and individual JUnit checks for 14 days.
+Pull requests to main build a read-only versioned preview; pull requests to other
+branches keep a development preview. Verify on main tests and seals an internal
+manual identified by the selected contract version, source and run. That artifact
+is not a published release. Only after the exact stable tag and its immutable
+release exist can the Pages job deploy the same verified bytes.
+
+The protected deployment job keeps Pages and identity-token write permissions
+separate from the release writer. It checks the same-run Pages archive by both ID
+and attempt-qualified name, then verifies that its source is still current main.
+A failed Pages job can be retried within the same run while its sealed artifact
+exists and its published tag still matches current main. If the archive has
+expired, run **Retry published evaluator manual** on main with that existing
+stable tag. It checks the immutable published release, rebuilds and tests its
+manual, and uses the same Pages gates. This cannot create or republish a release
+or deploy an older tag. Do not rerun the writer to retry delivery. Pull requests
+never deploy.
 Before production, verify Pages uses GitHub Actions and github-pages permits only
 main. Changes to security-sensitive settings require owner confirmation. This PR
 changes no repository settings and does not merge or dispatch production.

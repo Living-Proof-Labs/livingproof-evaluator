@@ -1,29 +1,48 @@
 # SPDX-License-Identifier: Apache-2.0
 name: Release
 on:
-  workflow_run:
-    workflows: [Verify]
-    types: [completed]
-    branches: [main]
+  workflow_call:
+    inputs:
+      version: {type: string, required: true}
+      commit: {type: string, required: true}
+    outputs:
+      published:
+        value: ${{ jobs.release.outputs.published }}
+      git-tag:
+        value: ${{ jobs.release.outputs.git-tag }}
+      version:
+        value: ${{ jobs.release.outputs.version }}
+      commit:
+        value: ${{ jobs.release.outputs.commit }}
 permissions:
   contents: read
 jobs:
-  release:
-    # The pinned semantic-release.yml analyzes conventional commits, then tags
-    # v${version} and publishes a GitHub release. It does not write a version
-    # into pyproject.toml. With no tag on main, semantic-release 25.0.9
-    # publishes its FIRST_RELEASE, 1.0.0, for every release type.
-    # workflow_run uses the default-branch tip as github.sha. Skip a stale Verify
-    # completion; the newer verified tip can batch the unreleased commits.
-    # The shared checkout defaults to GITHUB_SHA, and its runner asserts HEAD
-    # equals GITHUB_SHA before publishing. Its concurrency never cancels a release.
+  current-main:
     if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_sha == github.sha
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.commit == github.sha
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Require current main before the release writer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          current=$(gh api repos/Living-Proof-Labs/livingproof-evaluator/git/ref/heads/main --jq .object.sha)
+          test "$current" = "$CANDIDATE"
+  release:
+    needs: current-main
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.commit == github.sha
     permissions:
       contents: write
     uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@ee2a23c733b2dee6302c4aca72e210970ec8b44a # v9.9.2
+    with:
+      expected-version: ${{ inputs.version }}
+      expected-commit: ${{ inputs.commit }}

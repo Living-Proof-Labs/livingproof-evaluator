@@ -70,7 +70,13 @@ def test_source_identity_and_actual_tasks():
     assert record["guidelines_baseline"] == "v7.8.2"
     home = (SITE / "index.html").read_text()
     assert f"/tree/{record['source_commit']}" in home
-    assert "Docs: development" in home
+    assert record["docs_label"] in home
+    assert record["repo_label"] in home
+    version_page = (SITE / "version.html").read_text()
+    if record["edition"] == "release":
+        assert f"/releases/tag/v{record['version']}" in version_page
+    elif record["edition"] == "preview":
+        assert "This is not a release." in version_page
 
 
 @pytest.fixture(scope="module")
@@ -243,7 +249,7 @@ class HeaderFooterInspector(VisibleHTMLParser):
             self.in_footer -= 1
         if tag == "a" and self.in_link:
             text = "".join(self.link_text).strip()
-            if text.startswith("Docs: development"):
+            if text.startswith("Docs: "):
                 self.docs_links.append(
                     (text, self.link_attrs.get("href", ""), self.link_attrs.get("title", ""))
                 )
@@ -269,13 +275,13 @@ def test_no_sha_in_header_or_footer_visible_text():
         inspector = HeaderFooterInspector()
         inspector.feed(path.read_text())
         repo_text = "".join(inspector.source_repos).strip()
-        assert "Source · development" in repo_text, path
+        assert record["repo_label"] in repo_text, path
         assert not sha_pattern.search(repo_text), (path, repo_text)
         assert any(commit in href for href in inspector.source_links), path
         footer_text = " ".join(inspector.footer_text)
         assert not sha_pattern.search(footer_text), (path, footer_text)
         for text, href, title in inspector.docs_links:
-            assert text == "Docs: development", (path, text)
+            assert text == record["docs_label"], (path, text)
             assert not sha_pattern.search(text), (path, text)
             assert commit in href, (path, href)
             assert commit in title, (path, title)
@@ -312,18 +318,18 @@ def test_browser_header_and_footer_have_no_sha(browser, base_url, metadata, widt
         assert source.locator(".md-source__fact--forks").inner_text().strip() == "3"
     else:
         page.wait_for_load_state("networkidle")
-        assert source.inner_text().strip() == "Source · development"
+        assert source.inner_text().strip() == record["repo_label"]
     # Release facts are child elements of the repository label in some themes.
     # Read only its own text nodes, without hiding or removing those facts.
     label = source.locator(".md-source__repository").evaluate(
         "e => [...e.childNodes].filter(n => n.nodeType === Node.TEXT_NODE)"
         ".map(n => n.textContent).join('').trim()"
     )
-    assert label == "Source · development"
+    assert label == record["repo_label"]
     assert not sha_pattern.search(source.inner_text())
     assert commit in source.locator("a.md-source").get_attribute("href")
-    docs_link = page.get_by_role("link", name="Docs: development", exact=True)
-    assert docs_link.inner_text().strip() == "Docs: development"
+    docs_link = page.get_by_role("link", name=record["docs_label"], exact=True)
+    assert docs_link.inner_text().strip() == record["docs_label"]
     assert not sha_pattern.search(docs_link.inner_text())
     assert commit in docs_link.get_attribute("href")
     assert commit in docs_link.get_attribute("title")

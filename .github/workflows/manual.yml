@@ -1,20 +1,61 @@
 # SPDX-License-Identifier: Apache-2.0
 name: Repository manual
 on:
-  pull_request:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      version: {type: string, required: true}
+      commit: {type: string, required: true}
+      run: {type: string, required: true}
+      attempt: {type: string, required: true}
+    outputs:
+      artifact-id:
+        value: ${{ jobs.build.outputs.artifact-id }}
+      digest:
+        value: ${{ jobs.build.outputs.digest }}
 permissions:
   contents: read
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      artifact-id: ${{ steps.sealed.outputs.artifact-id }}
+      digest: ${{ steps.seal.outputs.digest }}
+    env:
+      MANUAL_VERSION: ${{ inputs.version }}
+      PLAN_COMMIT: ${{ inputs.commit }}
+      PLAN_RUN: ${{ inputs.run }}
+      PLAN_ATTEMPT: ${{ inputs.attempt }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ inputs.commit }}
           persist-credentials: false
+      - name: Require the exact planned source and build identity
+        env:
+          EXPECTED_SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
+          PR_BASE: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PLAN_COMMIT"
+          test "$PLAN_COMMIT" = "$EXPECTED_SOURCE"
+          test "$PLAN_RUN" = "$GITHUB_RUN_ID"
+          test "$PLAN_ATTEMPT" = "$GITHUB_RUN_ATTEMPT"
+          if [[ "$GITHUB_EVENT_NAME" != 'pull_request' || "$PR_BASE" == 'main' ]]; then
+            test -n "$MANUAL_VERSION"
+          fi
+      - name: Require the existing immutable stable release before rebuilding
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPLAY_TAG: ${{ github.event.inputs.replay_tag }}
+        run: |
+          set -euo pipefail
+          [[ "$MANUAL_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          test "$REPLAY_TAG" = "v$MANUAL_VERSION"
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$REPLAY_TAG" |
+            python3 tools/manual/delivery.py published "$REPLAY_TAG"
       - uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e
         with:
           version: '3.54.0'
@@ -43,7 +84,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: repository-manual
+          name: repository-manual-${{ github.run_attempt }}-${{ inputs.version || 'development' }}
           path: artifacts/manual/
           retention-days: 14
           if-no-files-found: error
@@ -62,32 +103,25 @@ jobs:
           echo "Manual and diagnostics (14 days): $ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"
           test "$emitted" -gt 0
           test "$emitted" -eq "$ingested"
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        with:
-          path: artifacts/manual/html
-  deploy:
-    needs: build
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    concurrency:
-      group: evaluator-pages
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Require current main inside deployment lock
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CANDIDATE: ${{ github.sha }}
+      - name: Seal the exact tested manual
+        id: seal
+        if: inputs.version != ''
         run: |
-          current=$(gh api repos/Living-Proof-Labs/livingproof-evaluator/git/ref/heads/main --jq .object.sha)
-          test "$current" = "$CANDIDATE"
-      - name: Deploy verified manual
-        id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
+          set -euo pipefail
+          cd artifacts/manual/html
+          test -f index.html
+          test -z "$(find . ! -type f ! -type d -print -quit)"
+          python3 ../../../tools/manual/delivery.py seal build.json "$MANUAL_VERSION" \
+            "$PLAN_COMMIT" "$PLAN_RUN" "$PLAN_ATTEMPT"
+          tar --dereference --hard-dereference -cf "$RUNNER_TEMP/artifact.tar" .
+          digest=$(sha256sum "$RUNNER_TEMP/artifact.tar")
+          echo "digest=${digest%% *}" >> "$GITHUB_OUTPUT"
+      - name: Retain the sealed manual for this run
+        id: sealed
+        if: inputs.version != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: evaluator-sealed-${{ github.run_attempt }}-${{ inputs.version }}
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 14
+          if-no-files-found: error
