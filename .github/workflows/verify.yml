@@ -95,7 +95,7 @@ jobs:
     if: github.event_name == 'push' || github.base_ref == 'main'
     permissions:
       contents: read
-    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release-candidate.yml@ee2a23c733b2dee6302c4aca72e210970ec8b44a # v9.9.2
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release-candidate.yml@26dc63114d6893c81e536a2fe560840073c9507d # v9.9.3
   manual:
     needs: version
     if: >-
