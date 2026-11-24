@@ -42,7 +42,7 @@ jobs:
       inputs.commit == github.sha
     permissions:
       contents: write
-    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@d0d9ae8e684f8a828b774eda01622b7c66e5252e # v9.9.10
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release.yml@9874b85df12230b390cb8c7381bc7e97ffd36d62 # v9.9.12
     with:
       expected-version: ${{ inputs.version }}
       expected-commit: ${{ inputs.commit }}
