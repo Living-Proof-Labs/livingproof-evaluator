@@ -14,7 +14,7 @@ The format stays /1. Later kinds arrive as minor versions: a later minor version
 
 ## Fields
 
-Every field below is required. An object rejects a key the schema does not name.
+Every field below is required. An object rejects a key the schema does not name. A consumer MUST refuse a document with duplicate JSON object keys.
 
 | Field | Meaning |
 | --- | --- |
@@ -27,7 +27,7 @@ Every field below is required. An object rejects a key the schema does not name.
 | `entrypoint` | `module`, the Python module a loader runs with `python -m`. |
 | `arguments` | Ordered arguments. See Placeholders. |
 | `exit_codes` | Each listed code means `result` or `refused`. See Exit codes. |
-| `result` | The result format this implementation writes. See Result. |
+| `result` | `result` is `livingproof-evaluator-result/1.<minor>.<patch>`. Another major is refused. |
 
 ## Install
 
@@ -48,10 +48,12 @@ A string may contain only these placeholders, each written with braces:
 | Placeholder | Role |
 | --- | --- |
 | `{evidence_manifest}` | Path of the evidence manifest. It appears in a top-level argument string. |
-| `{media_dir}` | Path of the media directory when the loader has one. |
+| `{media_dir}` | Path of the media directory when the loader has one. It is optional. |
 | `{result}` | Path where the implementation writes its result. It appears in a top-level argument string. |
 
-Any other `{...}` token, such as `{trial_dir}`, is rejected. A placeholder that appears only inside `then` does not meet the top-level rule. `{evidence_manifest}` and `{result}` must each appear in a top-level string, because the run needs a manifest and a path for the result file.
+Any other `{...}` token, such as `{trial_dir}`, is rejected. A placeholder that appears only inside `then` does not meet the top-level rule for `{evidence_manifest}` or `{result}`. Those two must each appear in a top-level string, because the run needs a manifest and a path for the result file.
+
+A placeholder for an optional input may appear only inside a conditional whose `if` names that input. A top-level argument string may not contain `{media_dir}`. `{media_dir}` may appear in `then` only when `if` is `media_dir`.
 
 ## Exit codes
 
@@ -63,4 +65,4 @@ The Run Integrity example maps `2` to `refused`. That mapping belongs to that im
 
 ## Result
 
-`result` names the result format this implementation writes. The Run Integrity example declares `livingproof-evaluator-result/1.2.0`. Consumers must check that the produced result's format equals the declared value and that its major is one they support.
+`result` is `livingproof-evaluator-result/1.<minor>.<patch>`. Another major is refused. Minor and patch are ASCII digits with no leading zero. The Run Integrity example declares `livingproof-evaluator-result/1.2.0`. Consumers must check that the produced result's format equals the declared value and that its major is one they support.

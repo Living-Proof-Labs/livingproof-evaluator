@@ -139,7 +139,7 @@ def test_the_schema_identity_and_closed_objects() -> None:
         r"\{result\}",
     ]
     assert document["$defs"]["argument"]["pattern"] == (
-        r"^(?:[^{}]|\{(?:evidence_manifest|media_dir|result)\})*$"
+        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|media_dir|result)\})*(?!\n)$"
     )
     exit_codes = document["properties"]["exit_codes"]
     assert exit_codes["required"] == ["0"]
@@ -175,7 +175,8 @@ def _drop_package_additional_properties(document: dict) -> dict:
 
 def _widen_argument_pattern(document: dict) -> dict:
     copied = copy.deepcopy(document)
-    copied["$defs"]["argument"]["pattern"] = ".*"
+    for name in ("argument", "argument_without_media_dir"):
+        copied["$defs"][name]["pattern"] = ".*"
     return copied
 
 
@@ -294,15 +295,96 @@ def test_exit_code_keys_are_0_through_255() -> None:
     assert schema_errors(_widen_exit_code_key_pattern(schema()), out_of_range) == []
 
 
+def _with_result(version: str) -> dict:
+    document = load_json(VALID)
+    document["result"] = f"livingproof-evaluator-result/{version}"
+    return document
+
+
+def _widen_result_pattern_to_unicode_digits(document: dict) -> dict:
+    copied = copy.deepcopy(document)
+    copied["properties"]["result"]["pattern"] = r"^livingproof-evaluator-result/1\.\d+\.\d+(?!\n)$"
+    return copied
+
+
+def _drop_result_newline_guard(document: dict) -> dict:
+    copied = copy.deepcopy(document)
+    pattern = copied["properties"]["result"]["pattern"]
+    copied["properties"]["result"]["pattern"] = pattern.replace(r"(?!\n)", "")
+    return copied
+
+
 def test_result_accepts_1_minor_versions_and_refuses_another_major() -> None:
-    sentence = (
+    rule = "`result` is `livingproof-evaluator-result/1.<minor>.<patch>`. Another major is refused."
+    consumer = (
         "Consumers must check that the produced result's format equals the declared value "
         "and that its major is one they support."
     )
-    assert sentence in GUIDE.read_text()
-    assert sentence in SCHEMA.read_text()
-    for version in ("1.0.0", "1.12.3", "1.2.0"):
-        document = load_json(VALID)
-        document["result"] = f"livingproof-evaluator-result/{version}"
-        assert schema_errors(schema(), document) == [], version
+    guide = GUIDE.read_text()
+    raw = SCHEMA.read_text()
+    assert rule in raw and consumer in raw
+    fields = guide.split("## Fields", 1)[1].split("\n## ", 1)[0]
+    assert rule in fields
+    assert rule in guide.split("## Result", 1)[1]
+    assert consumer in guide
+    for version in ("1.0.0", "1.2.0", "1.12.3"):
+        assert schema_errors(schema(), _with_result(version)) == [], version
+    for version in ("1.\u0662.0", "1.02.0", "1.2.0\n"):
+        assert paths(_with_result(version)) == ["result"], version
     assert paths(load_json(INVALID / "result-major-2.json")) == ["result"]
+    widened = _widen_result_pattern_to_unicode_digits(schema())
+    assert schema_errors(widened, _with_result("1.\u0662.0")) == []
+    assert schema_errors(widened, _with_result("1.02.0")) == []
+    assert schema_errors(_drop_result_newline_guard(schema()), _with_result("1.2.0\n")) == []
+
+
+def _allow_nul_in_arguments(document: dict) -> dict:
+    copied = copy.deepcopy(document)
+    for definition in copied["$defs"].values():
+        pattern = definition.get("pattern")
+        if isinstance(pattern, str) and r"\u0000" in pattern:
+            definition["pattern"] = pattern.replace(r"\u0000", "")
+    return copied
+
+
+def test_an_argument_with_nul_is_refused() -> None:
+    document = load_json(VALID)
+    document["arguments"][1]["then"][0] = "--media\u0000"
+    assert paths(document) == ["arguments/1"]
+    assert schema_errors(_allow_nul_in_arguments(schema()), document) == []
+
+
+def test_a_newline_in_an_argument_is_allowed() -> None:
+    embedded = load_json(VALID)
+    embedded["arguments"][1]["then"][0] = "--media\ndir"
+    trailing = load_json(VALID)
+    trailing["arguments"][2] = "--out\n"
+    assert schema_errors(schema(), embedded) == []
+    assert schema_errors(schema(), trailing) == []
+
+
+def _allow_media_dir_anywhere(document: dict) -> dict:
+    copied = copy.deepcopy(document)
+    media = {"$ref": "#/$defs/argument"}
+    copied["properties"]["arguments"]["items"]["oneOf"][0] = media
+    for branch in copied["$defs"]["conditional"]["allOf"]:
+        branch["then"]["properties"]["then"]["items"] = dict(media)
+    return copied
+
+
+def test_media_dir_appears_only_in_its_conditional() -> None:
+    assert schema_errors(schema(), load_json(VALID)) == []
+    top_level = load_json(VALID)
+    top_level["arguments"][2] = "{media_dir}"
+    assert paths(top_level) == ["arguments/2"]
+    wrong_if = load_json(VALID)
+    wrong_if["arguments"][1] = {"if": "result", "then": ["{media_dir}"]}
+    assert paths(wrong_if) == ["arguments/1"]
+    loosened = _allow_media_dir_anywhere(schema())
+    assert schema_errors(loosened, top_level) == []
+    assert schema_errors(loosened, wrong_if) == []
+
+
+def test_the_guide_says_to_refuse_duplicate_object_keys() -> None:
+    fields = GUIDE.read_text().split("## Fields", 1)[1].split("\n## ", 1)[0]
+    assert "A consumer MUST refuse a document with duplicate JSON object keys." in fields

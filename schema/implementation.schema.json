@@ -74,10 +74,10 @@
     "arguments": {
       "type": "array",
       "minItems": 1,
-      "description": "Ordered arguments. A string may contain only the placeholders {evidence_manifest}, {media_dir}, and {result}. {evidence_manifest} and {result} must each appear in a top-level string. A conditional is included only when that input is present, and conditionals do not nest.",
+      "description": "Ordered arguments. A top-level string may contain {evidence_manifest} and {result}, and may not contain {media_dir}. {media_dir} may appear only in a conditional whose if is media_dir. {evidence_manifest} and {result} must each appear in a top-level string. Conditionals do not nest.",
       "items": {
         "oneOf": [
-          {"$ref": "#/$defs/argument"},
+          {"$ref": "#/$defs/argument_without_media_dir"},
           {"$ref": "#/$defs/conditional"}
         ]
       },
@@ -105,21 +105,26 @@
     },
     "result": {
       "type": "string",
-      "pattern": "^livingproof-evaluator-result/1\\.\\d+\\.\\d+(?!\\n)$",
-      "description": "The result format this implementation writes. Consumers must check that the produced result's format equals the declared value and that its major is one they support."
+      "pattern": "^livingproof-evaluator-result/1\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?!\\n)$",
+      "description": "`result` is `livingproof-evaluator-result/1.<minor>.<patch>`. Another major is refused. Consumers must check that the produced result's format equals the declared value and that its major is one they support."
     }
   },
   "$defs": {
     "argument": {
       "type": "string",
-      "pattern": "^(?:[^{}]|\\{(?:evidence_manifest|media_dir|result)\\})*$",
-      "description": "An argument string. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, and {result}."
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result)\\})*(?!\\n)$",
+      "description": "An argument string. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, and {result}. NUL is rejected. A newline is allowed."
+    },
+    "argument_without_media_dir": {
+      "type": "string",
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|result)\\})*(?!\\n)$",
+      "description": "A top-level argument, or an argument in a conditional whose if is not media_dir. It may not contain {media_dir}."
     },
     "conditional": {
       "type": "object",
       "additionalProperties": false,
       "required": ["if", "then"],
-      "description": "Included only when the named input is present. then is a non-empty list of argument strings. Conditionals do not nest.",
+      "description": "Included only when the named input is present. then is a non-empty list of argument strings. Conditionals do not nest. {media_dir} may appear in then only when if is media_dir.",
       "properties": {
         "if": {
           "enum": ["evidence_manifest", "media_dir", "result"],
@@ -127,10 +132,44 @@
         },
         "then": {
           "type": "array",
-          "minItems": 1,
-          "items": {"$ref": "#/$defs/argument"}
+          "minItems": 1
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"if": {"const": "evidence_manifest"}},
+            "required": ["if"]
+          },
+          "then": {
+            "properties": {
+              "then": {"items": {"$ref": "#/$defs/argument_without_media_dir"}}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"if": {"const": "media_dir"}},
+            "required": ["if"]
+          },
+          "then": {
+            "properties": {
+              "then": {"items": {"$ref": "#/$defs/argument"}}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"if": {"const": "result"}},
+            "required": ["if"]
+          },
+          "then": {
+            "properties": {
+              "then": {"items": {"$ref": "#/$defs/argument_without_media_dir"}}
+            }
+          }
+        }
+      ]
     }
   }
 }
