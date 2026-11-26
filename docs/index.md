@@ -1,7 +1,8 @@
 # Evaluator contract
 
-Start with the [repository overview](../README.md), then read [run integrity](run-integrity.md)
-and the [evaluator descriptor](evaluator-descriptor.md). This repository defines wire
+Start with the [repository overview](../README.md), then read [run integrity](run-integrity.md),
+the [evaluator descriptor](evaluator-descriptor.md), and the
+[implementation descriptor](implementation-descriptor.md). This repository defines wire
 contracts; it does not ship an evaluator implementation. The hallway observable vocabulary is
 published in [observable vocabulary](observable-vocabulary.md), and the observation
 binding format in [observation binding](observation-binding.md).
