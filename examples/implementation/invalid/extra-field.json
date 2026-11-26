@@ -13,6 +13,6 @@
     "{result}"
   ],
   "exit_codes": {"0": "result", "2": "refused"},
-  "result": "livingproof-evaluator-result/1.1.0",
+  "result": "livingproof-evaluator-result/1.2.0",
   "source": "elsewhere"
 }

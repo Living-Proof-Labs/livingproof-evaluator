@@ -27,7 +27,7 @@ Every field below is required. An object rejects a key the schema does not name.
 | `entrypoint` | `module`, the Python module a loader runs with `python -m`. |
 | `arguments` | Ordered arguments. See Placeholders. |
 | `exit_codes` | Each listed code means `result` or `refused`. See Exit codes. |
-| `result` | The result format this implementation writes, `livingproof-evaluator-result/1.1.0`. |
+| `result` | The result format this implementation writes. See Result. |
 
 ## Install
 
@@ -55,8 +55,12 @@ Any other `{...}` token, such as `{trial_dir}`, is rejected. A placeholder that 
 
 ## Exit codes
 
-`exit_codes` maps a process exit code to `result` or `refused`. The key is the code in decimal, from 0 through 999, with no leading zero, written as a string. `"0"` is required and is `result`: the process wrote a result. `refused` means the implementation refused the inputs and did not write a result.
+`exit_codes` maps a process exit code to `result` or `refused`. The key is the code in decimal, from 0 through 255, with no leading zero, written as a string. `"0"` is required and is `result`: the process wrote a result. `refused` means the implementation refused the inputs and did not write a result.
 
 Any exit code not listed in exit_codes is a failure with no result. A loader does not read a result file for an unlisted code.
 
 The Run Integrity example maps `2` to `refused`. That mapping belongs to that implementation. The schema requires the `"0"` entry and leaves every other code to the descriptor that needs it.
+
+## Result
+
+`result` names the result format this implementation writes. The Run Integrity example declares `livingproof-evaluator-result/1.2.0`. Consumers must check that the produced result's format equals the declared value and that its major is one they support.

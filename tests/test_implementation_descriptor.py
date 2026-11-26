@@ -26,6 +26,7 @@ INVALID_PATHS = {
     "absolute-package-source.json": "package/name",
     "url-package-source.json": "package/name",
     "nested-extra-field.json": "package",
+    "result-major-2.json": "result",
 }
 
 
@@ -57,7 +58,7 @@ def test_the_run_integrity_descriptor_validates() -> None:
         "{result}",
     ]
     assert document["exit_codes"] == {"0": "result", "2": "refused"}
-    assert document["result"] == "livingproof-evaluator-result/1.1.0"
+    assert document["result"] == "livingproof-evaluator-result/1.2.0"
 
 
 @pytest.mark.parametrize("name", sorted(INVALID_PATHS))
@@ -79,6 +80,7 @@ def test_examples_and_the_guide_use_the_format_const() -> None:
         "invalid/extra-field.json",
         "invalid/missing-exit-0.json",
         "invalid/nested-extra-field.json",
+        "invalid/result-major-2.json",
         "invalid/unknown-kind.json",
         "invalid/unknown-placeholder.json",
         "invalid/url-package-source.json",
@@ -129,7 +131,7 @@ def test_the_schema_identity_and_closed_objects() -> None:
     ]
     assert document["properties"]["id"]["$ref"] == "defs.schema.json#/$defs/slug"
     name = document["properties"]["package"]["properties"]["name"]
-    assert name["pattern"] == r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$"
+    assert name["pattern"] == r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?!\n)$"
     arguments = document["properties"]["arguments"]
     assert arguments["minItems"] == 1
     assert [clause["contains"]["pattern"] for clause in arguments["allOf"]] == [
@@ -252,3 +254,55 @@ def test_a_nested_conditional_is_rejected() -> None:
     document = load_json(VALID)
     document["arguments"][1]["then"].append({"if": "media_dir", "then": ["--more"]})
     assert paths(document) == ["arguments/1"]
+
+
+def test_a_trailing_newline_is_rejected_in_names_and_exit_codes() -> None:
+    named = load_json(VALID)
+    named["package"]["name"] += "\n"
+    assert paths(named) == ["package/name"]
+
+    module = load_json(VALID)
+    module["entrypoint"]["module"] += "\n"
+    assert paths(module) == ["entrypoint/module"]
+
+    codes = load_json(VALID)
+    codes["exit_codes"]["2\n"] = codes["exit_codes"].pop("2")
+    assert paths(codes) == ["exit_codes", "exit_codes"]
+
+
+def _widen_exit_code_key_pattern(document: dict) -> dict:
+    copied = copy.deepcopy(document)
+    exit_codes = copied["properties"]["exit_codes"]
+    pattern = exit_codes["propertyNames"]["pattern"]
+    exit_codes["propertyNames"]["pattern"] = "^.*$"
+    exit_codes["patternProperties"]["^.*$"] = exit_codes["patternProperties"].pop(pattern)
+    return copied
+
+
+def test_exit_code_keys_are_0_through_255() -> None:
+    for code in ("1", "99", "199", "255"):
+        document = load_json(VALID)
+        document["exit_codes"][code] = "result"
+        assert schema_errors(schema(), document) == [], code
+    for code in ("256", "999", "1000", "02", "-1"):
+        document = load_json(VALID)
+        document["exit_codes"][code] = "refused"
+        assert paths(document) == ["exit_codes", "exit_codes"], code
+    # Replacing the key pattern with ^.*$ accepts a code the strict pattern refuses.
+    out_of_range = load_json(VALID)
+    out_of_range["exit_codes"]["256"] = "result"
+    assert schema_errors(_widen_exit_code_key_pattern(schema()), out_of_range) == []
+
+
+def test_result_accepts_1_minor_versions_and_refuses_another_major() -> None:
+    sentence = (
+        "Consumers must check that the produced result's format equals the declared value "
+        "and that its major is one they support."
+    )
+    assert sentence in GUIDE.read_text()
+    assert sentence in SCHEMA.read_text()
+    for version in ("1.0.0", "1.12.3", "1.2.0"):
+        document = load_json(VALID)
+        document["result"] = f"livingproof-evaluator-result/{version}"
+        assert schema_errors(schema(), document) == [], version
+    assert paths(load_json(INVALID / "result-major-2.json")) == ["result"]
