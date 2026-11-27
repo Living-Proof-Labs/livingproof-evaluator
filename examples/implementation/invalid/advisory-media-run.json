@@ -17,7 +17,7 @@
     "arguments": [
       "{evidence_manifest}",
       "{media_dir}",
-      "{result}"
+      "{result_dir}"
     ]
   },
   "exit_codes": {"0": "result", "2": "refused"},

@@ -49,12 +49,13 @@ A string may contain only these placeholders, each written with braces:
 | --- | --- |
 | `{evidence_manifest}` | Path of the evidence manifest. It appears in a top-level argument string, and in `media.arguments` when that object is present. |
 | `{media_dir}` | Path of the media directory when the loader has one. On the trial run it is optional. |
-| `{result}` | Path where the implementation writes its result. It appears in a top-level argument string. The consumer substitutes it separately for the media run. |
+| `{result}` | Path of one result file. integrity and advisory write that file. It is not a directory. It appears in a top-level argument string. |
+| `{result_dir}` | A directory a scenario run writes into. Only `kind: scenario` may use it. The per-trial result files in that directory are the results, and each one carries the declared result format. `thresholds.json` and any other file in the directory are not results. |
 | `{thresholds}` | Path of the thresholds file a scenario trial reads. Only `kind: scenario` may use it, in a top-level trial argument or inside `then`. `integrity` and `advisory` reject it. |
 | `{world}` | Path of the world file the media run reads. It may appear only in `media.arguments`. |
-| `{identity}` | The evaluator identity the media run records, a commit or an image digest. It may appear only in `media.arguments`. The consumer already resolved that identity when it fetched the descriptor. |
+| `{identity}` | The `--identity` string the media CLI records. The package stores that string as the evaluator input URI. Today's value is `git+https://github.com/<owner>/<repo>@<commit>`. The flag also accepts a commit or an image digest. It may appear only in `media.arguments`. |
 
-Any other `{...}` token, such as `{trial_dir}`, is rejected. A placeholder that appears only inside `then` does not meet the top-level rule for `{evidence_manifest}` or `{result}`. Those two must each appear in a top-level string, because the run needs a manifest and a path for the result file.
+Any other `{...}` token, such as `{trial_dir}`, is rejected. A placeholder that appears only inside `then` does not meet the top-level rule for `{evidence_manifest}` or `{result}`. `{evidence_manifest}` must appear in a top-level string. integrity and advisory must also include `{result}` there, because the run needs a manifest and a path for the result file. A scenario run names `{result_dir}` there instead.
 
 A placeholder for an optional input may appear only inside a conditional whose `if` names that input. A top-level argument string may not contain `{media_dir}`, `{world}`, or `{identity}`. `{media_dir}` may appear in `then` only when `if` is `media_dir`, and it may appear in `media.arguments`. `{thresholds}` may appear in a scenario trial argument, including inside `then`. `integrity` and `advisory` reject it in either place. It may not appear in `media.arguments`.
 
@@ -80,18 +81,22 @@ The result contract for this kind is in [advisory](advisory.md). A consumer MUST
 
 `kind` may be `scenario`. `grading` is `robot`: this is the implementation that grades the robot. `result` uses the same `livingproof-evaluator-result/1.<minor>.<patch>` rule as any other descriptor. The first-party scenario evaluator writes `livingproof-evaluator-result/1.1.0`. The format identifier stays `/1`.
 
-The trial run is `entrypoint` and `arguments`, as for every kind. The media run is the optional `media` object: `module` and a flat `arguments` list. `integrity` and `advisory` reject that key. A consumer runs the media run only when it has both a media directory and a world document; otherwise it runs no media process and writes no media result. The consumer substitutes `{result}` separately so the two runs write different paths.
+This descriptor covers the walk-hallway trial only. The consumer writes the hallway thresholds into `{thresholds}`, and world and parameters are absent, so there is no world document and the media run does not run. World-graded scenarios, including walk-corner, are not expressed here. They stay on capability-verifier's wrappers until that work moves. Additive `{world}` on the trial run and `{parameters}` on both runs are follow-up work.
 
-The worked example is [`examples/implementation/scenario.json`](../examples/implementation/scenario.json). It declares the two commands the scenario package accepts today:
+The trial run is `entrypoint` and `arguments`, as for every kind. The media run is the optional `media` object: `module` and a flat `arguments` list. `integrity` and `advisory` reject that key. A consumer runs the media run only when it has both a media directory and a world document; otherwise it runs no media process and writes no media result. The consumer substitutes `{result_dir}` separately so the two runs write different directories.
+
+`{result_dir}` is a directory a scenario run writes into. The per-trial result files in that directory are the results, and each one carries the declared result format. `thresholds.json` and any other file in the directory are not results.
+
+The worked example is [`examples/implementation/scenario.json`](../examples/implementation/scenario.json). It declares the two commands the scenario package accepts for walk-hallway:
 
 ```text
-python -m livingproof_evaluator_scenario {evidence_manifest} --thresholds {thresholds} --out {result}
-python -m livingproof_evaluator_scenario.media {evidence_manifest} {media_dir} {result} --world {world} --identity {identity}
+python -m livingproof_evaluator_scenario {evidence_manifest} --thresholds {thresholds} --out {result_dir}
+python -m livingproof_evaluator_scenario.media {evidence_manifest} {media_dir} {result_dir} --world {world} --identity {identity}
 ```
 
-Those are `python -m livingproof_evaluator_scenario` and `python -m livingproof_evaluator_scenario.media`. The package defaults `--started-at` and `--completed-at` to the current minute, so the descriptor omits them. The media module is not the trial module: the recordings run is `livingproof_evaluator_scenario.media`.
+Those are `python -m livingproof_evaluator_scenario` and `python -m livingproof_evaluator_scenario.media`. The trial CLI defaults `--started-at` to the current minute and `--completed-at` to that same started-at. The media CLI has `--started-at` only, defaulting to the current minute, and writes that value as both timestamps. It has no `--completed-at`. The descriptor omits them. The media module is not the trial module: the recordings run is `livingproof_evaluator_scenario.media`.
 
-Exit `0` writes a result. The scenario package exits `1` when it refuses the evidence and `2` when the arguments are wrong. The example maps both to `refused`. Any exit code not listed in exit_codes is a failure with no result.
+Exit `0` writes results. The example maps exit `1` to `refused`. At scenario package v1.5.21, exit 1 is also an uncaught crash: a missing or non-JSON thresholds file, a missing manifest, or a missing media.json. A distinct refusal exit code is follow-up work for [livingproof-evaluator-scenario#60](https://github.com/Living-Proof-Labs/livingproof-evaluator-scenario/issues/60). Exit 2 is an argparse usage error, including a missing `--thresholds` or `--world`. The example does not list exit 2, so it is a failure, not a refusal. Any exit code not listed in exit_codes is a failure with no result.
 
 ## One grading evaluator
 

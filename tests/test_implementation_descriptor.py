@@ -112,6 +112,7 @@ def test_examples_and_the_guide_use_the_format_const() -> None:
         "invalid/result-major-2.json",
         "invalid/scenario-grading-none.json",
         "invalid/unknown-kind-name.json",
+        "invalid/unknown-kind.json",
         "invalid/unknown-placeholder.json",
         "invalid/url-package-source.json",
         "run-integrity.json",
@@ -172,16 +173,15 @@ def test_the_schema_identity_and_closed_objects() -> None:
     assert arguments["minItems"] == 1
     assert [clause["contains"]["pattern"] for clause in arguments["allOf"]] == [
         r"\{evidence_manifest\}",
-        r"\{result\}",
     ]
     assert document["$defs"]["argument"]["pattern"] == (
-        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|media_dir|result|thresholds)\})*(?!\n)$"
+        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|media_dir|result|result_dir|thresholds)\})*(?!\n)$"
     )
     assert document["$defs"]["argument_without_media_dir"]["pattern"] == (
-        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|result|thresholds)\})*(?!\n)$"
+        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|result|result_dir|thresholds)\})*(?!\n)$"
     )
     assert document["$defs"]["media_argument"]["pattern"] == (
-        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|media_dir|result|world|identity)\})*(?!\n)$"
+        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|media_dir|result|result_dir|world|identity)\})*(?!\n)$"
     )
     exit_codes = document["properties"]["exit_codes"]
     assert exit_codes["required"] == ["0"]
@@ -530,21 +530,22 @@ def test_the_scenario_descriptor_matches_the_two_package_commands() -> None:
         "--thresholds",
         "{thresholds}",
         "--out",
-        "{result}",
+        "{result_dir}",
     ]
     assert document["media"] == {
         "module": "livingproof_evaluator_scenario.media",
         "arguments": [
             "{evidence_manifest}",
             "{media_dir}",
-            "{result}",
+            "{result_dir}",
             "--world",
             "{world}",
             "--identity",
             "{identity}",
         ],
     }
-    assert document["exit_codes"] == {"0": "result", "1": "refused", "2": "refused"}
+    assert document["exit_codes"] == {"0": "result", "1": "refused"}
+    assert "2" not in document["exit_codes"]
     assert document["result"] == "livingproof-evaluator-result/1.1.0"
     narrowed = schema()
     narrowed["properties"]["kind"]["enum"] = ["integrity", "advisory"]
@@ -601,6 +602,78 @@ def test_world_and_identity_stay_on_the_media_run() -> None:
         assert schema_errors(loosened, document) == [], token
 
 
+RESULT_FILE = "integrity and advisory write that file. It is not a directory."
+RESULT_DIR = (
+    "`{result_dir}` is a directory a scenario run writes into. "
+    "The per-trial result files in that directory are the results, "
+    "and each one carries the declared result format. "
+    "`thresholds.json` and any other file in the directory are not results."
+)
+THRESHOLDS_ROW = (
+    "| `{thresholds}` | Path of the thresholds file a scenario trial reads. "
+    "Only `kind: scenario` may use it, in a top-level trial argument or inside `then`. "
+    "`integrity` and `advisory` reject it. |"
+)
+WORLD_ROW = (
+    "| `{world}` | Path of the world file the media run reads. "
+    "It may appear only in `media.arguments`. |"
+)
+EXIT_1 = (
+    "At scenario package v1.5.21, exit 1 is also an uncaught crash: "
+    "a missing or non-JSON thresholds file, a missing manifest, or a missing media.json."
+)
+EXIT_1_FOLLOWUP = (
+    "A distinct refusal exit code is follow-up work for "
+    "[livingproof-evaluator-scenario#60]"
+    "(https://github.com/Living-Proof-Labs/livingproof-evaluator-scenario/issues/60)."
+)
+EXIT_2 = (
+    "Exit 2 is an argparse usage error, including a missing `--thresholds` or `--world`. "
+    "The example does not list exit 2, so it is a failure, not a refusal."
+)
+HALLWAY_ONLY = "This descriptor covers the walk-hallway trial only."
+
+
+def _drop_ref_clause(kind: str, ref: str):
+    def loosen(document: dict) -> dict:
+        copied = copy.deepcopy(document)
+        copied["allOf"] = [
+            clause
+            for clause in copied["allOf"]
+            if not (
+                clause.get("if", {}).get("properties", {}).get("kind", {}).get("const") == kind
+                and clause.get("then", {}).get("properties", {}).get("arguments", {}).get("$ref")
+                == ref
+            )
+        ]
+        return copied
+
+    return loosen
+
+
+def _drop_contains_clause(kind: str, token: str):
+    needle = "\\{" + token + "\\}"
+
+    def loosen(document: dict) -> dict:
+        copied = copy.deepcopy(document)
+        copied["allOf"] = [
+            clause
+            for clause in copied["allOf"]
+            if not (
+                clause.get("if", {}).get("properties", {}).get("kind", {}).get("const") == kind
+                and clause.get("then", {})
+                .get("properties", {})
+                .get("arguments", {})
+                .get("contains", {})
+                .get("pattern")
+                == needle
+            )
+        ]
+        return copied
+
+    return loosen
+
+
 def test_the_media_run_needs_a_directory_and_a_world() -> None:
     scenario = GUIDE.read_text().split("## Scenario", 1)[1].split("\n## ", 1)[0]
     assert MEDIA_RUN in scenario
@@ -618,6 +691,111 @@ def test_thresholds_inside_then_are_rejected_for_integrity_and_advisory() -> Non
     assert schema_errors(schema(), scenario) == []
 
 
+def test_result_stays_a_file_for_integrity_and_advisory() -> None:
+    guide = GUIDE.read_text()
+    assert RESULT_FILE in guide
+    assert RESULT_FILE in SCHEMA.read_text()
+    assert "a path for the result file" in guide
+    for name in ("run-integrity.json", "advisory.json", "battery-thermal.json"):
+        document = load_json(VALID.parent / name)
+        assert schema_errors(schema(), document) == [], name
+        assert "{result}" in document["arguments"]
+        assert "{result_dir}" not in str(document["arguments"])
+    missing = load_json(VALID)
+    missing["arguments"] = [item for item in missing["arguments"] if item != "{result}"]
+    assert "arguments" in paths(missing)
+    assert schema_errors(_drop_contains_clause("integrity", "result")(schema()), missing) == []
+
+
+def test_result_dir_is_scenario_only() -> None:
+    scenario = load_json(SCENARIO)
+    assert schema_errors(schema(), scenario) == []
+    assert "{result_dir}" in scenario["arguments"]
+    assert "{result_dir}" in scenario["media"]["arguments"]
+    assert RESULT_DIR in GUIDE.read_text().split("## Scenario", 1)[1]
+    assert RESULT_DIR in schema()["properties"]["media"]["description"]
+    for name, kind in (("run-integrity.json", "integrity"), ("advisory.json", "advisory")):
+        document = load_json(VALID.parent / name)
+        document["arguments"].append("{result_dir}")
+        assert paths(document) == ["arguments/4"], kind
+        assert (
+            schema_errors(_drop_ref_clause(kind, "#/$defs/no_result_dir")(schema()), document) == []
+        )
+    omitted = load_json(SCENARIO)
+    omitted["arguments"] = [item for item in omitted["arguments"] if item != "{result_dir}"]
+    assert "arguments" in paths(omitted)
+    assert schema_errors(_drop_contains_clause("scenario", "result_dir")(schema()), omitted) == []
+
+
+def test_the_scenario_descriptor_is_walk_hallway_only() -> None:
+    scenario = GUIDE.read_text().split("## Scenario", 1)[1].split("\n## ", 1)[0]
+    assert HALLWAY_ONLY in scenario
+    assert "walk-corner" in scenario
+    assert "follow-up work" in scenario
+
+
+def test_scenario_exit_2_is_a_failure() -> None:
+    document = load_json(SCENARIO)
+    assert document["exit_codes"] == {"0": "result", "1": "refused"}
+    assert "2" not in document["exit_codes"]
+    assert EXIT_2 in GUIDE.read_text()
+
+
+def test_scenario_exit_1_covers_refusals_and_crashes() -> None:
+    document = load_json(SCENARIO)
+    assert document["exit_codes"]["1"] == "refused"
+    guide = GUIDE.read_text()
+    assert EXIT_1 in guide
+    assert EXIT_1_FOLLOWUP in guide
+
+
+def test_media_module_rejects_a_trailing_newline() -> None:
+    document = load_json(SCENARIO)
+    document["media"]["module"] += "\n"
+    assert paths(document) == ["media/module"]
+    loosened = schema()
+    module = loosened["properties"]["media"]["properties"]["module"]
+    module["pattern"] = module["pattern"].replace("(?!\\n)", "")
+    assert schema_errors(loosened, document) == []
+
+
+@pytest.mark.parametrize("module", ["../x", "-c"])
+def test_media_module_pattern_is_enforced(module: str) -> None:
+    document = load_json(SCENARIO)
+    document["media"]["module"] = module
+    assert paths(document) == ["media/module"]
+    loosened = schema()
+    del loosened["properties"]["media"]["properties"]["module"]["pattern"]
+    assert schema_errors(loosened, document) == []
+
+
+def test_media_arguments_are_required() -> None:
+    document = load_json(SCENARIO)
+    del document["media"]["arguments"]
+    assert paths(document) == ["media"]
+    loosened = schema()
+    loosened["properties"]["media"]["required"].remove("arguments")
+    assert schema_errors(loosened, document) == []
+
+
+@pytest.mark.parametrize("media", ["python -m x", [1]])
+def test_media_must_be_an_object(media: object) -> None:
+    document = load_json(SCENARIO)
+    document["media"] = media
+    assert paths(document) == ["media"]
+    loosened = schema()
+    del loosened["properties"]["media"]["type"]
+    assert schema_errors(loosened, document) == []
+
+
+def test_the_thresholds_placeholder_row() -> None:
+    assert THRESHOLDS_ROW in GUIDE.read_text()
+
+
+def test_world_appears_only_in_media_arguments() -> None:
+    assert WORLD_ROW in GUIDE.read_text()
+
+
 def test_thresholds_stay_off_the_media_run() -> None:
     document = load_json(SCENARIO)
     document["media"]["arguments"].append("{thresholds}")
@@ -627,7 +805,7 @@ def test_thresholds_stay_off_the_media_run() -> None:
 
 
 def test_the_media_run_requires_its_three_placeholders() -> None:
-    for token in ("evidence_manifest", "media_dir", "result"):
+    for token in ("evidence_manifest", "media_dir", "result_dir"):
         document = load_json(SCENARIO)
         document["media"]["arguments"] = [
             item for item in document["media"]["arguments"] if "{" + token + "}" not in item

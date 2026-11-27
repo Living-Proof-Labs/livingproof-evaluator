@@ -74,7 +74,7 @@
     "arguments": {
       "type": "array",
       "minItems": 1,
-      "description": "Ordered arguments of the trial run. A top-level string may contain {evidence_manifest} and {result}, and may not contain {media_dir}, {world}, or {identity}. {thresholds} may appear in a trial argument, including inside then, only when kind is scenario. integrity and advisory reject it. {media_dir} may appear only in a conditional whose if is media_dir, or in media.arguments. {world} and {identity} may appear only in media.arguments. {evidence_manifest} and {result} must each appear in a top-level string. Conditionals do not nest.",
+      "description": "Ordered arguments of the trial run. A top-level string may contain {evidence_manifest} and {result}, and may not contain {media_dir}, {world}, or {identity}. {result} is the path of one result file. integrity and advisory write that file. It is not a directory. {result_dir} is a directory a scenario run writes into. The per-trial result files in that directory are the results, and each one carries the declared result format. thresholds.json and any other file in the directory are not results. {result_dir} and {thresholds} may appear in a trial argument, including inside then, only when kind is scenario. integrity and advisory reject them. {media_dir} may appear only in a conditional whose if is media_dir, or in media.arguments. {world} and {identity} may appear only in media.arguments. {evidence_manifest} must appear in a top-level string. integrity and advisory must also include {result} there. scenario must include {result_dir} there. Conditionals do not nest.",
       "items": {
         "oneOf": [
           {"$ref": "#/$defs/argument_without_media_dir"},
@@ -82,14 +82,13 @@
         ]
       },
       "allOf": [
-        {"contains": {"type": "string", "pattern": "\\{evidence_manifest\\}"}},
-        {"contains": {"type": "string", "pattern": "\\{result\\}"}}
+        {"contains": {"type": "string", "pattern": "\\{evidence_manifest\\}"}}
       ]
     },
     "media": {
       "type": "object",
       "additionalProperties": false,
-      "description": "The media run: a second process, used when this implementation grades recordings. integrity and advisory reject this key. A consumer runs the media run only when it has both a media directory and a world document; otherwise it runs no media process and writes no media result. The consumer substitutes {result} separately from the trial run. arguments is a flat list of strings. {evidence_manifest}, {media_dir}, and {result} must each appear. {world} and {identity} may appear here. Conditionals are not used: this object is already the media run.",
+      "description": "The media run: a second process, used when this implementation grades recordings. integrity and advisory reject this key. A consumer runs the media run only when it has both a media directory and a world document; otherwise it runs no media process and writes no media result. The consumer substitutes {result_dir} separately from the trial run. `{result_dir}` is a directory a scenario run writes into. The per-trial result files in that directory are the results, and each one carries the declared result format. `thresholds.json` and any other file in the directory are not results. arguments is a flat list of strings. {evidence_manifest}, {media_dir}, and {result_dir} must each appear. {world} and {identity} may appear here. {identity} is the --identity string the media CLI records, stored as the evaluator input URI. Today's value is git+https://github.com/<owner>/<repo>@<commit>; the flag also accepts a commit or an image digest. Conditionals are not used: this object is already the media run.",
       "required": ["module", "arguments"],
       "properties": {
         "module": {
@@ -104,7 +103,7 @@
           "allOf": [
             {"contains": {"type": "string", "pattern": "\\{evidence_manifest\\}"}},
             {"contains": {"type": "string", "pattern": "\\{media_dir\\}"}},
-            {"contains": {"type": "string", "pattern": "\\{result\\}"}}
+            {"contains": {"type": "string", "pattern": "\\{result_dir\\}"}}
           ]
         }
       }
@@ -222,23 +221,97 @@
           "arguments": {"$ref": "#/$defs/no_thresholds"}
         }
       }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "integrity"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "arguments": {"contains": {"type": "string", "pattern": "\\{result\\}"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "advisory"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "arguments": {"contains": {"type": "string", "pattern": "\\{result\\}"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "scenario"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "arguments": {"contains": {"type": "string", "pattern": "\\{result_dir\\}"}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "integrity"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "arguments": {"$ref": "#/$defs/no_result_dir"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "advisory"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "arguments": {"$ref": "#/$defs/no_result_dir"}
+        }
+      }
     }
   ],
   "$defs": {
     "argument": {
       "type": "string",
-      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|thresholds)\\})*(?!\\n)$",
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|result_dir|thresholds)\\})*(?!\\n)$",
       "description": "An argument string inside a conditional whose if is media_dir. The brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, and {thresholds}. integrity and advisory reject {thresholds}. NUL is rejected. A newline is allowed."
     },
     "argument_without_media_dir": {
       "type": "string",
-      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|result|thresholds)\\})*(?!\\n)$",
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|result|result_dir|thresholds)\\})*(?!\\n)$",
       "description": "A top-level argument, or an argument in a conditional whose if is not media_dir. It may contain {evidence_manifest}, {result}, and {thresholds}. integrity and advisory reject {thresholds}. It may not contain {media_dir}, {world}, or {identity}."
     },
     "media_argument": {
       "type": "string",
-      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|world|identity)\\})*(?!\\n)$",
-      "description": "An argument of the media run. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, {world}, and {identity}. NUL is rejected. A newline is allowed."
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|result_dir|world|identity)\\})*(?!\\n)$",
+      "description": "An argument of the media run. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, {result_dir}, {world}, and {identity}. NUL is rejected. A newline is allowed."
+    },
+    "no_result_dir": {
+      "description": "integrity and advisory reject {result_dir} in a top-level argument and inside then. {result} stays the path of one result file.",
+      "items": {
+        "not": {
+          "anyOf": [
+            {"type": "string", "pattern": "\\{result_dir\\}"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["then"],
+              "properties": {
+                "if": {},
+                "then": {"contains": {"type": "string", "pattern": "\\{result_dir\\}"}}
+              }
+            }
+          ]
+        }
+      }
     },
     "no_thresholds": {
       "description": "integrity and advisory reject {thresholds} in a top-level argument and inside then.",

@@ -1,17 +1,30 @@
 {
   "format": "livingproof-evaluator-implementation/1",
-  "id": "livingproof-run-integrity",
+  "id": "livingproof-scenario",
   "kind": "scenario",
   "grading": "none",
-  "package": {"name": "livingproof-evaluator-run"},
+  "package": {"name": "livingproof-evaluator-scenario"},
   "runtime": {"python": "3.12"},
-  "entrypoint": {"module": "livingproof_evaluator_run"},
+  "entrypoint": {"module": "livingproof_evaluator_scenario"},
   "arguments": [
     "{evidence_manifest}",
-    {"if": "media_dir", "then": ["--media", "{media_dir}"]},
+    "--thresholds",
+    "{thresholds}",
     "--out",
-    "{result}"
+    "{result_dir}"
   ],
-  "exit_codes": {"0": "result", "2": "refused"},
-  "result": "livingproof-evaluator-result/1.2.0"
+  "media": {
+    "module": "livingproof_evaluator_scenario.media",
+    "arguments": [
+      "{evidence_manifest}",
+      "{media_dir}",
+      "{result_dir}",
+      "--world",
+      "{world}",
+      "--identity",
+      "{identity}"
+    ]
+  },
+  "exit_codes": {"0": "result", "1": "refused"},
+  "result": "livingproof-evaluator-result/1.1.0"
 }
