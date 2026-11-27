@@ -15,7 +15,9 @@ Title, purpose, and version come from the existing [descriptor](evaluator-descri
 | `details_file` | no | A relative `.json` or `.txt` path and the sha256 of that file. The path is at most 256 characters. It has no scheme, no `..` traversal, and no query or fragment. |
 | `trials` | no | The observations this result read. When present, at least one entry. Each entry has `index` and `observation_sha256`. The entries are unique, and each `index` appears once. |
 
-Plain text rejects `<`, `>`, and control characters, including newlines, DEL and the C1 controls. It also rejects U+FEFF, U+2028 and U+2029, the invisible characters U+200B through U+200F, the bidi controls U+202A through U+202E, and U+2060 through U+2064 and U+2066 through U+2069. An ampersand is allowed. A value that is only whitespace is rejected. The same limits are what a report already uses for advisory presentation text.
+JSON Schema cannot require unique `index` values when the hashes differ, so the schema alone accepts a repeated index. `tools/validate_contract.py` refuses it, and a consumer MUST also refuse it: a loader that validates only against the schema has to add this check.
+
+Plain text rejects `<`, `>`, and control characters, including newlines, DEL and the C1 controls. It also rejects U+180E, U+FEFF, lone surrogates U+D800 through U+DFFF, U+2028 and U+2029, the invisible characters U+200B through U+200F, the bidi controls U+202A through U+202E, and U+2060 through U+2064 and U+2066 through U+2069. An ampersand is allowed. A value that is only whitespace is rejected. The same limits are what a report already uses for advisory presentation text.
 
 The object rejects any other key. It has no grade, no robot verdict, and no test-system status. A consumer MUST refuse a document with duplicate JSON object keys.
 
@@ -23,7 +25,7 @@ The object rejects any other key. It has no grade, no robot verdict, and no test
 
 The result format that carries this payload is minor 1.3 or any later 1.x minor, for example `livingproof-evaluator-result/1.3.0` or `livingproof-evaluator-result/1.4.0`. Documents that already validate as 1.0, 1.1, or 1.2 still validate. An advisory document does not validate when its format is `1.2.x`.
 
-A 1.2 consumer ignores the unknown kind. It drops fields it does not know and does not grade from them.
+A 1.2 reader that projects known fields ignores the unknown kind. A 1.2 consumer that validates against the v1.9.1 schema refuses the document at `evaluator/kind`. Both fail closed.
 
 ## Implementation descriptor
 

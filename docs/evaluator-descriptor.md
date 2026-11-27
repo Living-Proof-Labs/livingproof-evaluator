@@ -22,7 +22,7 @@ The examples in this repository use the names already on the 1.0 fixtures: `Scen
 
 ## Advisory
 
-From `livingproof-evaluator-result/1.3.0`, an advisory result uses this same descriptor for its title, purpose, and version. The descriptor is required, and `tier` is `observation`. The advisory payload never grades, and it never changes Scenario, Run Integrity, or the evidence. A 1.2 consumer ignores the unknown kind. The payload fields and the forward-compatibility rule are in [advisory](advisory.md).
+From `livingproof-evaluator-result/1.3.0`, an advisory result uses this same descriptor for its title, purpose, and version. The descriptor is required, and `tier` is `observation`. The advisory payload never grades, and it never changes Scenario, Run Integrity, or the evidence. A 1.2 reader that projects known fields ignores the unknown kind. A 1.2 consumer that validates against the v1.9.1 schema refuses the document at `evaluator/kind`. Both fail closed. The payload fields and the forward-compatibility rule are in [advisory](advisory.md).
 
 A request does not carry a descriptor. The object is result output.
 

@@ -102,7 +102,36 @@ def test_recorded_observation_and_battery_thermal_validate_on_the_same_schema() 
         assert "health" not in raw.lower()
 
 
+_CLOSED_READER = (
+    "A 1.2 reader that projects known fields ignores the unknown kind. "
+    "A 1.2 consumer that validates against the v1.9.1 schema refuses the document "
+    "at `evaluator/kind`. Both fail closed."
+)
+_REPEATED_INDEX_GUIDE = (
+    "JSON Schema cannot require unique `index` values when the hashes differ, "
+    "so the schema alone accepts a repeated index. `tools/validate_contract.py` refuses it, "
+    "and a consumer MUST also refuse it: a loader that validates only against the schema "
+    "has to add this check."
+)
+_REPEATED_INDEX_SCHEMA = (
+    "The schema cannot require unique index values; a consumer MUST refuse a repeated index "
+    "(tools/validate_contract.py does)."
+)
+
+
+def _assert_closed_reader_sentence() -> None:
+    for path in (
+        ROOT / "docs" / "advisory.md",
+        ROOT / "docs" / "evaluator-descriptor.md",
+        SCHEMA_ROOT / "evaluator-result.schema.json",
+    ):
+        assert _CLOSED_READER in path.read_text(encoding="utf-8"), path
+    schema = (SCHEMA_ROOT / "evaluator-result.schema.json").read_text(encoding="utf-8")
+    assert schema.count(_CLOSED_READER) >= 2
+
+
 def test_format_1_2_rejects_the_recorded_advisory_document() -> None:
+    _assert_closed_reader_sentence()
     document = _recorded()
     document["format"] = "livingproof-evaluator-result/1.2.0"
     assert _errors(document)
@@ -115,8 +144,8 @@ def test_the_guide_states_what_advisory_may_not_do() -> None:
     guide = (ROOT / "docs" / "advisory.md").read_text()
     assert "It never grades the robot." in guide
     assert "It never changes Scenario, Run Integrity, or the evidence." in guide
-    assert "A 1.2 consumer ignores the unknown kind." in guide
     assert "tier` is `observation`" in guide
+    _assert_closed_reader_sentence()
     for path in (
         ROOT / "docs" / "index.md",
         ROOT / "docs" / "manual.md",
@@ -446,6 +475,15 @@ def test_plain_text_refuses_invisible_and_bidi_controls() -> None:
         _assert_summary_refused(f"a{character}b")
 
 
+def test_plain_text_refuses_mongolian_vowel_separator_and_a_lone_surrogate() -> None:
+    _assert_summary_refused("\u180e")
+    _assert_summary_refused("ab\ud800c")
+    emoji = "😀" * 400
+    assert len(emoji) == 400
+    assert _errors(_summary(emoji)) == []
+    _assert_summary_refused("😀" * 401)
+
+
 def test_summary_and_details_accept_their_exact_limits() -> None:
     summary = _summary("a" * 400)
     assert len(summary["advisory"]["summary"]) == 400
@@ -559,6 +597,13 @@ def test_advisory_guide_refuses_duplicate_json_keys() -> None:
     assert "A consumer MUST refuse a document with duplicate JSON object keys." in text
 
 
+def test_the_repeated_index_limit_is_stated_for_schema_only_consumers() -> None:
+    guide = (ROOT / "docs" / "advisory.md").read_text(encoding="utf-8")
+    schema = (SCHEMA_ROOT / "evaluator-result.schema.json").read_text(encoding="utf-8")
+    assert _REPEATED_INDEX_GUIDE in guide
+    assert _REPEATED_INDEX_SCHEMA in schema
+
+
 def _advisory_fixtures() -> list:
     found = []
     for path in sorted((EXAMPLES / "advisory").rglob("*.json")):
@@ -591,10 +636,20 @@ def _ajv_accepts(path) -> bool:
     return completed.returncode == 0
 
 
+def _python_and_ajv_agree(document: dict, label: str) -> None:
+    python_accepts = schema_errors(_schema_for(document), document) == []
+    path = ROOT / "artifacts" / "ajv-parity.json"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps(document), encoding="utf-8")
+    assert python_accepts == _ajv_accepts(path), label
+
+
 def test_python_and_ajv_agree_on_advisory_fixtures() -> None:
     for path in _advisory_fixtures():
-        python_accepts = schema_errors(_schema_for(load_json(path)), load_json(path)) == []
-        assert python_accepts == _ajv_accepts(path), path
+        _python_and_ajv_agree(load_json(path), str(path))
+    _python_and_ajv_agree(_summary("\u180e"), "U+180E")
+    _python_and_ajv_agree(_summary("ab\ud800c"), "lone surrogate")
+    _python_and_ajv_agree(_summary("😀" * 400), "400 astral emoji")
 
 
 def _schema_for(document: dict) -> dict:
