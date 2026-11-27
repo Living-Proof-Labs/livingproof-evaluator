@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 
 from validate_contract import consumer_accepts, validate_document
 
@@ -368,3 +369,235 @@ def test_examples_at_v1_9_1_are_unchanged_and_still_validate() -> None:
             raise AssertionError(relative)
         valid += 1
     assert (valid, invalid, len(listed)) == (75, 8, 83)
+
+
+_SHA = "ab" * 32
+_INVISIBLE = (
+    "\u200b",
+    "\u200c",
+    "\u200d",
+    "\u200e",
+    "\u200f",
+    "\u202a",
+    "\u202b",
+    "\u202c",
+    "\u202d",
+    "\u202e",
+    "\u2060",
+    "\u2061",
+    "\u2062",
+    "\u2063",
+    "\u2064",
+    "\u2066",
+    "\u2067",
+    "\u2068",
+    "\u2069",
+)
+
+
+def _summary(text: str) -> dict:
+    document = _recorded()
+    document["advisory"]["summary"] = text
+    return document
+
+
+def _assert_summary_refused(text: str) -> None:
+    assert _errors(_summary(text))[0].startswith("advisory/summary:"), repr(text)
+
+
+def test_plain_text_refuses_a_trailing_newline() -> None:
+    assert _errors(_summary("abc")) == []
+    _assert_summary_refused("abc\n")
+
+
+def test_plain_text_refuses_each_angle_bracket_alone() -> None:
+    assert _errors(_summary("a&b")) == []
+    _assert_summary_refused("a<b")
+    _assert_summary_refused("a>b")
+
+
+def test_plain_text_refuses_c0_controls_other_than_lf() -> None:
+    assert _errors(_summary("abc")) == []
+    for control in ("\x00", "\t", "\r"):
+        _assert_summary_refused(f"a{control}b")
+
+
+def test_plain_text_refuses_del_and_c1() -> None:
+    assert _errors(_summary("abc")) == []
+    for control in ("\u007f", "\u0085", "\u009f"):
+        _assert_summary_refused(f"a{control}b")
+
+
+def test_plain_text_refuses_line_separators() -> None:
+    assert _errors(_summary("abc")) == []
+    _assert_summary_refused("a\u2028b")
+    _assert_summary_refused("a\u2029b")
+
+
+def test_summary_of_only_bom_is_refused() -> None:
+    _assert_summary_refused("\ufeff")
+    _assert_summary_refused("a\ufeffb")
+
+
+def test_plain_text_refuses_invisible_and_bidi_controls() -> None:
+    assert _errors(_summary("abc")) == []
+    for character in _INVISIBLE:
+        _assert_summary_refused(character)
+        _assert_summary_refused(f"a{character}b")
+
+
+def test_summary_and_details_accept_their_exact_limits() -> None:
+    summary = _summary("a" * 400)
+    assert len(summary["advisory"]["summary"]) == 400
+    assert _errors(summary) == []
+    _assert_summary_refused("a" * 401)
+    details = _recorded()
+    details["advisory"]["details"] = "b" * 2000
+    assert _errors(details) == []
+    details["advisory"]["details"] = "b" * 2001
+    assert _errors(details)[0].startswith("advisory/details:")
+
+
+def test_details_file_requires_both_fields_and_rejects_an_extra_key() -> None:
+    present = _recorded()
+    assert _errors(present) == []
+    missing_hash = _recorded()
+    del missing_hash["advisory"]["details_file"]["sha256"]
+    assert _errors(missing_hash)[0].startswith("advisory/details_file:")
+    missing_uri = _recorded()
+    del missing_uri["advisory"]["details_file"]["uri"]
+    assert _errors(missing_uri)[0].startswith("advisory/details_file:")
+    extra = _recorded()
+    extra["advisory"]["details_file"]["note"] = "x"
+    assert _errors(extra)[0].startswith("advisory/details_file:")
+
+
+def test_details_file_uri_rejects_a_trailing_newline_and_other_extensions() -> None:
+    for uri in ("record.json", "record.txt", "dir/record.json"):
+        document = _recorded()
+        document["advisory"]["details_file"]["uri"] = uri
+        assert _errors(document) == [], uri
+    for uri in ("a.json\n", "a.JSON", "a.yaml", "a.json.exe"):
+        document = _recorded()
+        document["advisory"]["details_file"]["uri"] = uri
+        assert _errors(document)[0].startswith("advisory/details_file/uri:"), repr(uri)
+
+
+def test_trial_items_reject_an_extra_key_and_require_an_integer_index() -> None:
+    valid = _recorded()
+    assert _errors(valid) == []
+    extra = _recorded()
+    extra["advisory"]["trials"][0]["note"] = "x"
+    assert _errors(extra)[0].startswith("advisory/trials/0:")
+    missing = _recorded()
+    del missing["advisory"]["trials"][0]["index"]
+    assert _errors(missing)
+    fractional = _recorded()
+    fractional["advisory"]["trials"][0]["index"] = 1.5
+    assert _errors(fractional)[0].startswith("advisory/trials/0/index:")
+    text = _recorded()
+    text["advisory"]["trials"][0]["index"] = "1"
+    assert _errors(text)[0].startswith("advisory/trials/0/index:")
+
+
+def test_advisory_summary_and_details_are_each_required() -> None:
+    assert _errors(_recorded()) == []
+    missing_summary = _recorded()
+    del missing_summary["advisory"]["summary"]
+    assert any("summary" in error for error in _errors(missing_summary))
+    missing_details = _recorded()
+    del missing_details["advisory"]["details"]
+    assert any("details" in error for error in _errors(missing_details))
+
+
+def test_advisory_result_format_accepts_later_minors_and_refuses_a_trailing_newline() -> None:
+    for version in ("1.3.0", "1.4.0", "1.10.0"):
+        document = _recorded()
+        document["format"] = f"livingproof-evaluator-result/{version}"
+        assert _errors(document) == [], version
+    newline = _recorded()
+    newline["format"] = "livingproof-evaluator-result/1.3.0\n"
+    assert _errors(newline)[0].startswith("format:")
+
+
+def test_trials_when_present_have_at_least_one_entry() -> None:
+    omitted = _recorded()
+    del omitted["advisory"]["trials"]
+    assert _errors(omitted) == []
+    empty = _recorded()
+    empty["advisory"]["trials"] = []
+    assert _errors(empty)[0].startswith("advisory/trials:")
+
+
+def test_trials_reject_a_duplicate_entry() -> None:
+    document = _recorded()
+    document["advisory"]["trials"] = [
+        document["advisory"]["trials"][0],
+        dict(document["advisory"]["trials"][0]),
+    ]
+    assert _errors(document)[0].startswith("advisory/trials:")
+    distinct = _recorded()
+    second = dict(distinct["advisory"]["trials"][0])
+    second["index"] = 2
+    second["observation_sha256"] = _SHA
+    distinct["advisory"]["trials"].append(second)
+    assert _errors(distinct) == []
+
+
+def test_trials_reject_a_duplicate_index() -> None:
+    document = _recorded()
+    second = dict(document["advisory"]["trials"][0])
+    second["observation_sha256"] = _SHA
+    document["advisory"]["trials"].append(second)
+    assert _errors(document) == []
+    errors = validate_document(document)
+    assert errors == ["advisory/trials/1/index: repeats advisory/trials/0/index"]
+
+
+def test_advisory_guide_refuses_duplicate_json_keys() -> None:
+    text = (ROOT / "docs" / "advisory.md").read_text(encoding="utf-8")
+    assert "A consumer MUST refuse a document with duplicate JSON object keys." in text
+
+
+def _advisory_fixtures() -> list:
+    found = []
+    for path in sorted((EXAMPLES / "advisory").rglob("*.json")):
+        document = load_json(path)
+        if isinstance(document, dict) and str(document.get("format", "")).startswith(
+            "livingproof-evaluator-"
+        ):
+            found.append(path)
+    found.extend(
+        [
+            EXAMPLES / "implementation" / "advisory.json",
+            EXAMPLES / "implementation" / "battery-thermal.json",
+            EXAMPLES / "implementation" / "invalid" / "advisory-grading.json",
+            EXAMPLES / "implementation" / "invalid" / "advisory-result-minor.json",
+        ]
+    )
+    return found
+
+
+def _ajv_accepts(path) -> bool:
+    completed = subprocess.run(
+        ["node", str(ROOT / "tools" / "ajv" / "validate.mjs"), str(path)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode not in (0, 1):
+        raise AssertionError(completed.stderr or completed.stdout)
+    return completed.returncode == 0
+
+
+def test_python_and_ajv_agree_on_advisory_fixtures() -> None:
+    for path in _advisory_fixtures():
+        python_accepts = schema_errors(_schema_for(load_json(path)), load_json(path)) == []
+        assert python_accepts == _ajv_accepts(path), path
+
+
+def _schema_for(document: dict) -> dict:
+    if str(document.get("format", "")).startswith("livingproof-evaluator-implementation/"):
+        return load_json(SCHEMA_ROOT / "implementation.schema.json")
+    return result_schema()

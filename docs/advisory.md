@@ -13,11 +13,11 @@ Title, purpose, and version come from the existing [descriptor](evaluator-descri
 | `summary` | yes | Plain text, 1 to 400 characters. |
 | `details` | yes | Plain text, 1 to 2000 characters. |
 | `details_file` | no | A relative `.json` or `.txt` path and the sha256 of that file. The path is at most 256 characters. It has no scheme, no `..` traversal, and no query or fragment. |
-| `trials` | no | The observations this result read. Each entry has `index` and `observation_sha256`. |
+| `trials` | no | The observations this result read. When present, at least one entry. Each entry has `index` and `observation_sha256`. The entries are unique, and each `index` appears once. |
 
-Plain text rejects `<`, `>`, and control characters, including newlines. An ampersand is allowed. A value that is only whitespace is rejected. The same limits are what a report already uses for advisory presentation text.
+Plain text rejects `<`, `>`, and control characters, including newlines, DEL and the C1 controls. It also rejects U+FEFF, U+2028 and U+2029, the invisible characters U+200B through U+200F, the bidi controls U+202A through U+202E, and U+2060 through U+2064 and U+2066 through U+2069. An ampersand is allowed. A value that is only whitespace is rejected. The same limits are what a report already uses for advisory presentation text.
 
-The object rejects any other key. It has no grade, no robot verdict, and no test-system status.
+The object rejects any other key. It has no grade, no robot verdict, and no test-system status. A consumer MUST refuse a document with duplicate JSON object keys.
 
 ## Format
 

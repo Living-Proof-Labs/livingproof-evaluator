@@ -120,6 +120,38 @@ def validate_document(document: dict) -> list[str]:
         errors.extend(_omitted_icon_subset_errors(document))
     if isinstance(document, dict) and "descriptor" in document:
         errors.extend(descriptor_errors(document))
+    errors.extend(_duplicate_trial_index_errors(document))
+    return errors
+
+
+def _duplicate_trial_index_errors(document: dict) -> list[str]:
+    """Reject a repeated advisory trial index.
+
+    The schema's uniqueItems rejects an identical entry. It cannot require the
+    index values to be unique when the other fields differ, so this check does.
+    """
+    evaluator = document.get("evaluator")
+    if not isinstance(evaluator, dict) or evaluator.get("kind") != "advisory":
+        return []
+    payload = document.get("advisory")
+    if not isinstance(payload, dict):
+        return []
+    trials = payload.get("trials")
+    if not isinstance(trials, list):
+        return []
+    seen: dict[int, int] = {}
+    errors: list[str] = []
+    for position, trial in enumerate(trials):
+        if not isinstance(trial, dict):
+            continue
+        index = trial.get("index")
+        if isinstance(index, bool) or not isinstance(index, int):
+            continue
+        previous = seen.get(index)
+        if previous is None:
+            seen[index] = position
+            continue
+        errors.append(f"advisory/trials/{position}/index: repeats advisory/trials/{previous}/index")
     return errors
 
 
