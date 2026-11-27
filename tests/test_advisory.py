@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 
 from validate_contract import consumer_accepts, validate_document
@@ -181,7 +182,7 @@ def test_html_in_details_is_refused() -> None:
     assert _errors(blank)[0].startswith("advisory/summary:")
     newline = _recorded()
     newline["advisory"]["details"] = "line\nbreak"
-    assert _errors(newline) == []
+    assert _errors(newline)[0].startswith("advisory/details:")
 
 
 def test_summary_over_400_characters_is_refused() -> None:
@@ -500,7 +501,7 @@ def test_advisory_text_allows_joiners_inside_real_text() -> None:
     ):
         assert _errors(_summary(text)) == [], text
     details = _recorded()
-    details["advisory"]["details"] = "\nThe observation is on the second line."
+    details["advisory"]["details"] = "The observation is on one line."
     assert _errors(details) == []
 
 
@@ -708,9 +709,61 @@ def test_python_and_ajv_agree_on_advisory_fixtures() -> None:
         ("ZWJ and spaces", " \u200d "),
     ):
         _python_and_ajv_agree(_summary(text), label)
-    multiline = _recorded()
-    multiline["advisory"]["details"] = "\nThe observation is on the second line."
-    _python_and_ajv_agree(multiline, "multi-line details")
+    line_break = _recorded()
+    line_break["advisory"]["details"] = "line\nbreak"
+    assert _errors(line_break)
+    _python_and_ajv_agree(line_break, "line break in details")
+    single_line = _recorded()
+    single_line["advisory"]["details"] = "The observation is on one line."
+    assert _errors(single_line) == []
+    _python_and_ajv_agree(single_line, "single-line details")
+
+
+_REPORTER_MARKUP = re.compile(r"[<>\x00-\x1f\x7f-\x9f\u2028\u2029]")
+
+
+def _reporter_accepts(text: str) -> bool:
+    """The Reporter's presentation check: no markup or controls, and not blank."""
+    return _REPORTER_MARKUP.search(text) is None and bool(text.strip())
+
+
+def _advisory_strings_under_test() -> list[str]:
+    """Strings from the accept tests, the fixtures, and the newline probe."""
+    texts = [
+        "👩‍💻",
+        "🏳️‍🌈",
+        "می‌خواهم",
+        "漢字のテスト",
+        "مرحبا",
+        "שלום",
+        "e\u0301",
+        "a\u200db",
+        "a\u200cb",
+        "The observation is on one line.",
+        "abc",
+        "a" * 400,
+        "b" * 2000,
+        "😀" * 400,
+        "line\nbreak",
+    ]
+    for path in _advisory_fixtures():
+        advisory = load_json(path).get("advisory")
+        if not isinstance(advisory, dict):
+            continue
+        for field in ("summary", "details"):
+            value = advisory.get(field)
+            if isinstance(value, str):
+                texts.append(value)
+    return texts
+
+
+def test_text_the_schema_accepts_also_passes_the_reporter() -> None:
+    for text in _advisory_strings_under_test():
+        summary = _summary(text)
+        details = _recorded()
+        details["advisory"]["details"] = text
+        if _errors(summary) == [] or _errors(details) == []:
+            assert _reporter_accepts(text), repr(text)
 
 
 def _schema_for(document: dict) -> dict:
