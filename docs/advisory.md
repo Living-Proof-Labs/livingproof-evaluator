@@ -13,7 +13,7 @@ Title, purpose, and version come from the existing [descriptor](evaluator-descri
 | `summary` | yes | Plain text, 1 to 400 characters. |
 | `details` | yes | Plain text, 1 to 2000 characters. |
 | `details_file` | no | A relative `.json` or `.txt` path and the sha256 of that file. The path is at most 256 characters. It has no scheme, no `..` traversal, and no query or fragment. |
-| `trials` | no | The observations this result read. When present, at least one entry. Each entry has `index` and `observation_sha256`. The entries are unique, and each `index` appears once. |
+| `trials` | no | The observations this result read. When present, at least one entry. Each entry has `index` and `observation_sha256`. The entries are unique, and each `index` appears once. An index is at most 9007199254740991 (2^53-1). |
 
 JSON Schema cannot require unique `index` values when the hashes differ, so the schema alone accepts a repeated index. `tools/validate_contract.py` refuses it, and a consumer MUST also refuse it: a loader that validates only against the schema has to add this check.
 

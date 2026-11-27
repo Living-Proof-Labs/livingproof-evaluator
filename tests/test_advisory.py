@@ -680,6 +680,52 @@ def _ajv_accepts(path) -> bool:
     return completed.returncode == 0
 
 
+def _with_raw_trials(raw_trials: str) -> str:
+    """A recorded result whose trials array is the given JSON, not a Python number."""
+    document = _recorded()
+    del document["advisory"]["trials"]
+    document["advisory"]["TRIALS_PLACEHOLDER"] = 0
+    text = json.dumps(document)
+    return text.replace('"TRIALS_PLACEHOLDER": 0', f'"trials": {raw_trials}', 1)
+
+
+def _one_raw_index(raw_index: str) -> str:
+    return _with_raw_trials('[{"index": ' + raw_index + ', "observation_sha256": "' + _SHA + '"}]')
+
+
+def _python_accepts_raw(raw: str) -> bool:
+    document = json.loads(raw)
+    return schema_errors(_schema_for(document), document) == []
+
+
+def _ajv_accepts_raw(raw: str) -> bool:
+    path = ROOT / "artifacts" / "ajv-parity.json"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(raw, encoding="utf-8")
+    return _ajv_accepts(path)
+
+
+def _python_and_ajv_agree_raw(raw: str, label: str) -> None:
+    assert _python_accepts_raw(raw) == _ajv_accepts_raw(raw), label
+
+
+def test_trial_index_is_at_most_2_to_the_53_minus_1() -> None:
+    for raw in ("1", "9007199254740991"):
+        text = _one_raw_index(raw)
+        assert _python_accepts_raw(text) and _ajv_accepts_raw(text), raw
+    for raw in ("9007199254740992", "1e300", "1e400"):
+        text = _one_raw_index(raw)
+        assert not _python_accepts_raw(text) and not _ajv_accepts_raw(text), raw
+    pair = _with_raw_trials(
+        '[{"index": 9007199254740992, "observation_sha256": "'
+        + _SHA
+        + '"}, {"index": 9007199254740993, "observation_sha256": "'
+        + _SHA
+        + '"}]'
+    )
+    assert not _python_accepts_raw(pair) and not _ajv_accepts_raw(pair)
+
+
 def _python_and_ajv_agree(document: dict, label: str) -> None:
     python_accepts = schema_errors(_schema_for(document), document) == []
     path = ROOT / "artifacts" / "ajv-parity.json"
@@ -717,6 +763,24 @@ def test_python_and_ajv_agree_on_advisory_fixtures() -> None:
     single_line["advisory"]["details"] = "The observation is on one line."
     assert _errors(single_line) == []
     _python_and_ajv_agree(single_line, "single-line details")
+    for label, raw in (
+        ("index 1", _one_raw_index("1")),
+        ("index 2^53-1", _one_raw_index("9007199254740991")),
+        ("index 2^53", _one_raw_index("9007199254740992")),
+        ("index 1e300", _one_raw_index("1e300")),
+        ("index 1e400", _one_raw_index("1e400")),
+        (
+            "index pair above 2^53",
+            _with_raw_trials(
+                '[{"index": 9007199254740992, "observation_sha256": "'
+                + _SHA
+                + '"}, {"index": 9007199254740993, "observation_sha256": "'
+                + _SHA
+                + '"}]'
+            ),
+        ),
+    ):
+        _python_and_ajv_agree_raw(raw, label)
 
 
 _REPORTER_MARKUP = re.compile(r"[<>\x00-\x1f\x7f-\x9f\u2028\u2029]")
