@@ -14,7 +14,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
-    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release-candidate.yml@1cc0047b67a6ea642aa3512bb7b5363e7a025316 # v9.10.2
+    uses: Living-Proof-Labs/collaboration-guidelines/.github/workflows/semantic-release-candidate.yml@12a558644c3bfa31c83dacce162e613981479d30 # v9.10.3
     with:
       replay-tag: ${{ inputs.replay_tag }}
   manual:
