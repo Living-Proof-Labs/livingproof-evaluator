@@ -132,9 +132,13 @@ def test_the_guide_states_what_advisory_may_not_do() -> None:
         SCHEMA_ROOT / "evaluator-request.schema.json",
         ROOT / "docs" / "advisory.md",
         ROOT / "docs" / "implementation-descriptor.md",
+        ROOT / "docs" / "run-integrity.md",
     )
     for path in banned:
         assert "health" not in path.read_text().lower(), path
+    descriptor = (ROOT / "docs" / "evaluator-descriptor.md").read_text()
+    assert "for example `1.2.0`" not in descriptor
+    assert "`advisory`, at `1.3.0`" in descriptor
 
 
 def test_html_in_details_is_refused() -> None:
