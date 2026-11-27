@@ -124,6 +124,19 @@ def validate_document(document: dict) -> list[str]:
     return errors
 
 
+def _whole_index(value: object) -> int | None:
+    """The integer a trial index counts as. A whole-number float is that integer.
+
+    JSON Schema type integer accepts 1.0. Python parses that token as a float,
+    so the repeat check has to normalise it or [1, 1.0] would pass.
+    """
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    if isinstance(value, float) and not value.is_integer():
+        return None
+    return int(value)
+
+
 def _duplicate_trial_index_errors(document: dict) -> list[str]:
     """Reject a repeated advisory trial index.
 
@@ -144,8 +157,8 @@ def _duplicate_trial_index_errors(document: dict) -> list[str]:
     for position, trial in enumerate(trials):
         if not isinstance(trial, dict):
             continue
-        index = trial.get("index")
-        if isinstance(index, bool) or not isinstance(index, int):
+        index = _whole_index(trial.get("index"))
+        if index is None:
             continue
         previous = seen.get(index)
         if previous is None:

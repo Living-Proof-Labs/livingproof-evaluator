@@ -17,7 +17,7 @@ Title, purpose, and version come from the existing [descriptor](evaluator-descri
 
 JSON Schema cannot require unique `index` values when the hashes differ, so the schema alone accepts a repeated index. `tools/validate_contract.py` refuses it, and a consumer MUST also refuse it: a loader that validates only against the schema has to add this check.
 
-Plain text rejects `<`, `>`, and control characters, including newlines, DEL and the C1 controls. It also rejects U+180E, U+FEFF, lone surrogates U+D800 through U+DFFF, U+2028 and U+2029, the invisible characters U+200B through U+200F, the bidi controls U+202A through U+202E, and U+2060 through U+2064 and U+2066 through U+2069. An ampersand is allowed. A value that is only whitespace is rejected. The same limits are what a report already uses for advisory presentation text.
+Plain text rejects `<`, `>`, and control characters other than a line break, including DEL and the C1 controls. It also rejects U+180E, U+FEFF, lone surrogates U+D800 through U+DFFF, U+2028 and U+2029, U+200B, U+200E and U+200F, the bidi controls U+202A through U+202E, and U+2060 through U+2064 and U+2066 through U+2069. ZWJ (U+200D) and ZWNJ (U+200C) are allowed inside text. An ampersand is allowed. A line break is allowed, and the value may not end with one. A value that is only whitespace, or only those joiners, is rejected. Anything valid here also passes the Reporter's presentation check. This contract is stricter than that check.
 
 The object rejects any other key. It has no grade, no robot verdict, and no test-system status. A consumer MUST refuse a document with duplicate JSON object keys.
 

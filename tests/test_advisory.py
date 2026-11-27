@@ -181,7 +181,7 @@ def test_html_in_details_is_refused() -> None:
     assert _errors(blank)[0].startswith("advisory/summary:")
     newline = _recorded()
     newline["advisory"]["details"] = "line\nbreak"
-    assert _errors(newline)[0].startswith("advisory/details:")
+    assert _errors(newline) == []
 
 
 def test_summary_over_400_characters_is_refused() -> None:
@@ -403,8 +403,6 @@ def test_examples_at_v1_9_1_are_unchanged_and_still_validate() -> None:
 _SHA = "ab" * 32
 _INVISIBLE = (
     "\u200b",
-    "\u200c",
-    "\u200d",
     "\u200e",
     "\u200f",
     "\u202a",
@@ -478,10 +476,38 @@ def test_plain_text_refuses_invisible_and_bidi_controls() -> None:
 def test_plain_text_refuses_mongolian_vowel_separator_and_a_lone_surrogate() -> None:
     _assert_summary_refused("\u180e")
     _assert_summary_refused("ab\ud800c")
+    _assert_summary_refused("ab\udc00c")
     emoji = "😀" * 400
     assert len(emoji) == 400
     assert _errors(_summary(emoji)) == []
     _assert_summary_refused("😀" * 401)
+
+
+def test_advisory_text_allows_joiners_inside_real_text() -> None:
+    guide = (ROOT / "docs" / "advisory.md").read_text(encoding="utf-8")
+    assert "Anything valid here also passes the Reporter's presentation check." in guide
+    assert "U+200D" in guide and "U+200C" in guide
+    for text in (
+        "👩‍💻",
+        "🏳️‍🌈",
+        "می‌خواهم",
+        "漢字のテスト",
+        "مرحبا",
+        "שלום",
+        "e\u0301",
+        "a\u200db",
+        "a\u200cb",
+    ):
+        assert _errors(_summary(text)) == [], text
+    details = _recorded()
+    details["advisory"]["details"] = "\nThe observation is on the second line."
+    assert _errors(details) == []
+
+
+def test_advisory_text_refuses_a_value_made_only_of_joiners() -> None:
+    _assert_summary_refused("\u200d")
+    _assert_summary_refused("\u200c")
+    _assert_summary_refused(" \u200d ")
 
 
 def test_summary_and_details_accept_their_exact_limits() -> None:
@@ -582,6 +608,15 @@ def test_trials_reject_a_duplicate_entry() -> None:
     assert _errors(distinct) == []
 
 
+def _with_indexes(*indexes: object) -> dict:
+    document = _recorded()
+    document["advisory"]["trials"] = [
+        {"index": index, "observation_sha256": f"{position:064x}"}
+        for position, index in enumerate(indexes)
+    ]
+    return document
+
+
 def test_trials_reject_a_duplicate_index() -> None:
     document = _recorded()
     second = dict(document["advisory"]["trials"][0])
@@ -590,6 +625,14 @@ def test_trials_reject_a_duplicate_index() -> None:
     assert _errors(document) == []
     errors = validate_document(document)
     assert errors == ["advisory/trials/1/index: repeats advisory/trials/0/index"]
+    repeated = _with_indexes(1, 2, 1)
+    assert validate_document(repeated) == [
+        "advisory/trials/2/index: repeats advisory/trials/0/index"
+    ]
+    whole_float = _with_indexes(1, 1.0)
+    assert validate_document(whole_float) == [
+        "advisory/trials/1/index: repeats advisory/trials/0/index"
+    ]
 
 
 def test_advisory_guide_refuses_duplicate_json_keys() -> None:
@@ -648,8 +691,26 @@ def test_python_and_ajv_agree_on_advisory_fixtures() -> None:
     for path in _advisory_fixtures():
         _python_and_ajv_agree(load_json(path), str(path))
     _python_and_ajv_agree(_summary("\u180e"), "U+180E")
-    _python_and_ajv_agree(_summary("ab\ud800c"), "lone surrogate")
+    _python_and_ajv_agree(_summary("ab\ud800c"), "lone high surrogate")
+    _python_and_ajv_agree(_summary("ab\udc00c"), "lone low surrogate")
     _python_and_ajv_agree(_summary("😀" * 400), "400 astral emoji")
+    _python_and_ajv_agree(_summary("\ufeff"), "U+FEFF only")
+    for label, text in (
+        ("woman technologist", "👩‍💻"),
+        ("rainbow flag", "🏳️‍🌈"),
+        ("Persian", "می‌خواهم"),
+        ("CJK", "漢字のテスト"),
+        ("Arabic", "مرحبا"),
+        ("Hebrew", "שלום"),
+        ("combining mark", "e\u0301"),
+        ("ZWJ only", "\u200d"),
+        ("ZWNJ only", "\u200c"),
+        ("ZWJ and spaces", " \u200d "),
+    ):
+        _python_and_ajv_agree(_summary(text), label)
+    multiline = _recorded()
+    multiline["advisory"]["details"] = "\nThe observation is on the second line."
+    _python_and_ajv_agree(multiline, "multi-line details")
 
 
 def _schema_for(document: dict) -> dict:
