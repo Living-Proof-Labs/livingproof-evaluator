@@ -27,6 +27,8 @@ INVALID_PATHS = {
     "url-package-source.json": "package/name",
     "nested-extra-field.json": "package",
     "result-major-2.json": "result",
+    "advisory-grading.json": "grading",
+    "advisory-result-minor.json": "result",
 }
 
 
@@ -76,7 +78,11 @@ def test_examples_and_the_guide_use_the_format_const() -> None:
     assert name in readme
     found = sorted(VALID.parent.rglob("*.json"))
     assert [path.relative_to(VALID.parent).as_posix() for path in found] == [
+        "advisory.json",
+        "battery-thermal.json",
         "invalid/absolute-package-source.json",
+        "invalid/advisory-grading.json",
+        "invalid/advisory-result-minor.json",
         "invalid/extra-field.json",
         "invalid/missing-exit-0.json",
         "invalid/nested-extra-field.json",
@@ -194,6 +200,27 @@ def _open_kind(document: dict) -> dict:
     return copied
 
 
+def _drop_clause(document: dict, *, kind: str, field: str) -> dict:
+    copied = copy.deepcopy(document)
+    copied["allOf"] = [
+        clause
+        for clause in copied["allOf"]
+        if not (
+            clause.get("if", {}).get("properties", {}).get("kind", {}).get("const") == kind
+            and field in clause.get("then", {}).get("properties", {})
+        )
+    ]
+    return copied
+
+
+def _drop_advisory_grading(document: dict) -> dict:
+    return _drop_clause(document, kind="advisory", field="grading")
+
+
+def _drop_advisory_result_minor(document: dict) -> dict:
+    return _drop_clause(document, kind="advisory", field="result")
+
+
 def _drop_package_name_pattern(document: dict) -> dict:
     copied = copy.deepcopy(document)
     del copied["properties"]["package"]["properties"]["name"]["pattern"]
@@ -207,6 +234,8 @@ _PROBES = [
     ("missing-exit-0.json", _drop_required_exit_zero),
     ("unknown-kind.json", _open_kind),
     ("absolute-package-source.json", _drop_package_name_pattern),
+    ("advisory-grading.json", _drop_advisory_grading),
+    ("advisory-result-minor.json", _drop_advisory_result_minor),
 ]
 
 
@@ -383,6 +412,26 @@ def test_media_dir_appears_only_in_its_conditional() -> None:
     loosened = _allow_media_dir_anywhere(schema())
     assert schema_errors(loosened, top_level) == []
     assert schema_errors(loosened, wrong_if) == []
+
+
+def test_integrity_grading_stays_none() -> None:
+    document = load_json(VALID)
+    document["grading"] = "robot"
+    assert paths(document) == ["grading"]
+    assert schema_errors(_drop_clause(schema(), kind="integrity", field="grading"), document) == []
+
+
+def test_advisory_descriptors_validate_and_keep_the_media_dir_conditional() -> None:
+    for name in ("advisory.json", "battery-thermal.json"):
+        document = load_json(VALID.parent / name)
+        assert schema_errors(schema(), document) == []
+        assert document["kind"] == "advisory"
+        assert document["grading"] == "none"
+        assert document["result"] == "livingproof-evaluator-result/1.3.0"
+        assert document["arguments"][1] == {"if": "media_dir", "then": ["--media", "{media_dir}"]}
+    moved = load_json(VALID.parent / "advisory.json")
+    moved["arguments"][2] = "{media_dir}"
+    assert paths(moved) == ["arguments/2"]
 
 
 def test_the_guide_says_to_refuse_duplicate_object_keys() -> None:

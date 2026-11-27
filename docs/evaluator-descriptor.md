@@ -16,13 +16,17 @@ The examples in this repository use the names already on the 1.0 fixtures: `Scen
 
 ## Where the object sits
 
-`descriptor` is its own object on the result. It is not a field of `evaluator`, and it is not a new payload beside `scenario` and `integrity`.
+`descriptor` is its own object on the result. It is not a field of `evaluator`.
 
-`evaluator.kind` selects the payload. It is `scenario` or `integrity`. `descriptor.kind` is a display label. A consumer must not read `descriptor.kind` to choose a payload. The two fields share a name and nothing else. Putting the display label on `evaluator` would overload the selector, so this contract does not do that.
+`evaluator.kind` selects the payload. It is `scenario`, `integrity`, or, from format 1.3.0, `advisory`. `descriptor.kind` is a display label. A consumer must not read `descriptor.kind` to choose a payload. The two fields share a name and nothing else. Putting the display label on `evaluator` would overload the selector, so this contract does not do that.
+
+## Advisory
+
+From `livingproof-evaluator-result/1.3.0`, an advisory result uses this same descriptor for its title, purpose, and version. The descriptor is required, and `tier` is `observation`. The advisory payload never grades, and it never changes Scenario, Run Integrity, or the evidence. A 1.2 consumer ignores the unknown kind. The payload fields and the forward-compatibility rule are in [advisory](advisory.md).
 
 A request does not carry a descriptor. The object is result output.
 
-Format `livingproof-evaluator-result/1.0.0` must not include `descriptor`. A document that already validated as 1.0.0 still validates. Format `1.1.0`, and a later 1.minor, may include it. The object is optional. A 1.1 result that omits it is valid.
+Format `livingproof-evaluator-result/1.0.0` must not include `descriptor`. A document that already validated as 1.0.0 still validates. Format `1.1.0`, and a later 1.minor, may include it. The object is optional, except on an advisory result, where it is required. A 1.1 result that omits it is valid.
 
 Inside the object, `tier` is required. The other fields are optional. `findings` is required only in the sense that a problem the summary should show is written there. An empty array, or a missing array, means this evaluator is satisfied for the summary.
 

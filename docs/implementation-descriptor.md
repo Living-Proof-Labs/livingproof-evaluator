@@ -20,14 +20,14 @@ Every field below is required. An object rejects a key the schema does not name.
 | --- | --- |
 | `format` | The constant `livingproof-evaluator-implementation/1`. The format stays /1. |
 | `id` | The `evaluator.id` this implementation writes on its results. A slug, such as `livingproof-run-integrity`. |
-| `kind` | `integrity` only in this version. Later kinds widen this enum. |
-| `grading` | `none` only in this version. This implementation does not grade. |
+| `kind` | `integrity` or `advisory`. A consumer MUST refuse a kind it does not know. |
+| `grading` | `none` only in this version. This implementation does not grade. `advisory` requires `none`. |
 | `package` | The distribution `name` only. See Install. |
 | `runtime` | `python`, fixed at 3.12 for now. See Runtime. |
 | `entrypoint` | `module`, the Python module a loader runs with `python -m`. |
 | `arguments` | Ordered arguments. See Placeholders. |
 | `exit_codes` | Each listed code means `result` or `refused`. See Exit codes. |
-| `result` | `result` is `livingproof-evaluator-result/1.<minor>.<patch>`. Another major is refused. |
+| `result` | `result` is `livingproof-evaluator-result/1.<minor>.<patch>`. Another major is refused. `advisory` names minor 1.3. |
 
 ## Install
 
@@ -65,4 +65,10 @@ The Run Integrity example maps `2` to `refused`. That mapping belongs to that im
 
 ## Result
 
-`result` is `livingproof-evaluator-result/1.<minor>.<patch>`. Another major is refused. Minor and patch are ASCII digits with no leading zero. The Run Integrity example declares `livingproof-evaluator-result/1.2.0`. Consumers must check that the produced result's format equals the declared value and that its major is one they support.
+`result` is `livingproof-evaluator-result/1.<minor>.<patch>`. Another major is refused. Minor and patch are ASCII digits with no leading zero. The Run Integrity example declares `livingproof-evaluator-result/1.2.0`. An `advisory` implementation names minor 1.3, for example `livingproof-evaluator-result/1.3.0`. Consumers must check that the produced result's format equals the declared value and that its major is one they support.
+
+## Advisory
+
+`kind` may be `advisory`. `grading` is `none`: an advisory implementation does not grade. `result` names result minor 1.3 (`livingproof-evaluator-result/1.3.<patch>`). The format identifier stays `/1`. Placeholders and exit codes are the same fixed set. `{media_dir}` may appear only in a conditional whose `if` is `media_dir`.
+
+The result contract for this kind is in [advisory](advisory.md). A consumer MUST refuse a kind it does not know.

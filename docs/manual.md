@@ -3,6 +3,7 @@
 This manual adopts the documentation recipe and brand from collaboration-guidelines
 v7.8.2, resolved to `1470bd46deffd62d6badf568996225e56872258a`.
 The two pre-existing guides remain canonical and keep their file names and headings.
+The [advisory kind](advisory.md) is indexed with those guides.
 Schemas and example JSON are rendered from the checked-out files; Task reference
 comes from native `task --list --json` and `task --summary`.
 
