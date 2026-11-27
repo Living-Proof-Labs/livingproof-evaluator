@@ -21,10 +21,10 @@ The object rejects any other key. It has no grade, no robot verdict, and no test
 
 ## Format
 
-The result format that carries this payload is `livingproof-evaluator-result/1.3.0`. A later 1.3 patch is the same minor. Documents that already validate as 1.0, 1.1, or 1.2 still validate. An advisory document does not validate when its format is `1.2.x`.
+The result format that carries this payload is minor 1.3 or any later 1.x minor, for example `livingproof-evaluator-result/1.3.0` or `livingproof-evaluator-result/1.4.0`. Documents that already validate as 1.0, 1.1, or 1.2 still validate. An advisory document does not validate when its format is `1.2.x`.
 
 A 1.2 consumer ignores the unknown kind. It drops fields it does not know and does not grade from them.
 
 ## Implementation descriptor
 
-An implementation descriptor may set `kind` to `advisory`. `grading` is `none`. `result` names minor 1.3 of the result format. The implementation format stays `livingproof-evaluator-implementation/1`. Placeholders and exit codes are unchanged, including `{media_dir}` under its existing conditional. See [implementation descriptor](implementation-descriptor.md).
+An implementation descriptor may set `kind` to `advisory`. `grading` is `none`. `result` names minor 1.3 or any later 1.x minor, the one version that implementation writes. The implementation format stays `livingproof-evaluator-implementation/1`. Placeholders and exit codes are unchanged, including `{media_dir}` under its existing conditional. See [implementation descriptor](implementation-descriptor.md).

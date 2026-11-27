@@ -421,6 +421,24 @@ def test_integrity_grading_stays_none() -> None:
     assert schema_errors(_drop_clause(schema(), kind="integrity", field="grading"), document) == []
 
 
+def test_advisory_result_accepts_minor_1_3_or_later() -> None:
+    for version in ("1.3.0", "1.3.1", "1.4.0", "1.10.0"):
+        document = _with_result(version)
+        document["kind"] = "advisory"
+        assert schema_errors(schema(), document) == [], version
+
+
+def test_advisory_result_refuses_a_minor_before_1_3_and_another_major() -> None:
+    for version in ("1.2.0", "1.2.1"):
+        document = _with_result(version)
+        document["kind"] = "advisory"
+        assert paths(document) == ["result"], version
+    # Major 2 misses both the shared 1.x pattern and the advisory minor rule.
+    another_major = _with_result("2.0.0")
+    another_major["kind"] = "advisory"
+    assert paths(another_major) == ["result", "result"]
+
+
 def test_advisory_descriptors_validate_and_keep_the_media_dir_conditional() -> None:
     for name in ("advisory.json", "battery-thermal.json"):
         document = load_json(VALID.parent / name)
