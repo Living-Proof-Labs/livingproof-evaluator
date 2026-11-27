@@ -78,7 +78,7 @@ def test_kind_description_says_advisory_never_grades() -> None:
 def test_recorded_observation_and_battery_thermal_validate_on_the_same_schema() -> None:
     implementation = load_json(SCHEMA_ROOT / "implementation.schema.json")
     assert implementation["properties"]["id"]["$ref"] == "defs.schema.json#/$defs/slug"
-    assert implementation["properties"]["kind"]["enum"] == ["integrity", "advisory"]
+    assert implementation["properties"]["kind"]["enum"] == ["integrity", "advisory", "scenario"]
     for name in ("advisory.json", "battery-thermal.json"):
         assert schema_errors(implementation, load_json(EXAMPLES / "implementation" / name)) == []
     recorded = _recorded()

@@ -29,4 +29,4 @@ A 1.2 reader that projects known fields ignores the unknown kind. A 1.2 consumer
 
 ## Implementation descriptor
 
-An implementation descriptor may set `kind` to `advisory`. `grading` is `none`. `result` names minor 1.3 or any later 1.x minor, the one version that implementation writes. The implementation format stays `livingproof-evaluator-implementation/1`. Placeholders and exit codes are unchanged, including `{media_dir}` under its existing conditional. See [implementation descriptor](implementation-descriptor.md).
+An implementation descriptor may set `kind` to `advisory`. `grading` is `none`. `result` names minor 1.3 or any later 1.x minor, the one version that implementation writes. The implementation format stays `livingproof-evaluator-implementation/1`. An advisory descriptor still has one trial argument list, with `{media_dir}` only under its existing conditional, and it has no media run. The scenario kind is the one that grades the robot. See [implementation descriptor](implementation-descriptor.md).

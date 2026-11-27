@@ -2,7 +2,7 @@
 
 Start with the [repository overview](../README.md), then read [run integrity](run-integrity.md),
 the [evaluator descriptor](evaluator-descriptor.md), the
-[implementation descriptor](implementation-descriptor.md), and the
+[implementation descriptor](implementation-descriptor.md) (`integrity`, `advisory`, and `scenario`; only `scenario` grades the robot), and the
 [advisory kind](advisory.md). This repository defines wire
 contracts; it does not ship an evaluator implementation. The hallway observable vocabulary is
 published in [observable vocabulary](observable-vocabulary.md), and the observation

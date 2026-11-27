@@ -20,19 +20,19 @@
   "properties": {
     "format": {
       "const": "livingproof-evaluator-implementation/1",
-      "description": "The format stays /1. New kinds widen the kind enum additively in a later minor version of this contract. A consumer MUST refuse a kind it does not know."
+      "description": "The format stays /1. This version's kinds are integrity, advisory, and scenario. A later minor version widens the kind enum additively. A consumer MUST refuse a kind it does not know."
     },
     "id": {
       "$ref": "defs.schema.json#/$defs/slug",
       "description": "The evaluator.id this implementation writes on its results."
     },
     "kind": {
-      "enum": ["integrity", "advisory"],
-      "description": "integrity or advisory. A later minor version widens this enum additively. A consumer MUST refuse a kind it does not know."
+      "enum": ["integrity", "advisory", "scenario"],
+      "description": "integrity, advisory, or scenario. A later minor version widens this enum additively. A consumer MUST refuse a kind it does not know."
     },
     "grading": {
       "type": "string",
-      "description": "none only in this version. This implementation does not grade. advisory requires none."
+      "description": "integrity and advisory require none. scenario requires robot. Every other combination is rejected. At most one evaluator in a run may grade the robot. A descriptor is one evaluator, so the descriptor cannot state that rule. A consumer that loads a list of descriptors MUST refuse a list with two `grading` values of `robot`."
     },
     "package": {
       "type": "object",
@@ -74,7 +74,7 @@
     "arguments": {
       "type": "array",
       "minItems": 1,
-      "description": "Ordered arguments. A top-level string may contain {evidence_manifest} and {result}, and may not contain {media_dir}. {media_dir} may appear only in a conditional whose if is media_dir. {evidence_manifest} and {result} must each appear in a top-level string. Conditionals do not nest.",
+      "description": "Ordered arguments of the trial run. A top-level string may contain {evidence_manifest}, {result}, and {thresholds}, and may not contain {media_dir}, {world}, or {identity}. {media_dir} may appear only in a conditional whose if is media_dir, or in media.arguments. {world} and {identity} may appear only in media.arguments. {evidence_manifest} and {result} must each appear in a top-level string. Conditionals do not nest.",
       "items": {
         "oneOf": [
           {"$ref": "#/$defs/argument_without_media_dir"},
@@ -85,6 +85,29 @@
         {"contains": {"type": "string", "pattern": "\\{evidence_manifest\\}"}},
         {"contains": {"type": "string", "pattern": "\\{result\\}"}}
       ]
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The media run: a second process, used when this implementation grades recordings. integrity and advisory reject this key. The consumer runs it only when it has a media directory, and substitutes {result} separately from the trial run. arguments is a flat list of strings. {evidence_manifest}, {media_dir}, and {result} must each appear. {world} and {identity} may appear here. Conditionals are not used: this object is already the media run.",
+      "required": ["module", "arguments"],
+      "properties": {
+        "module": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*(?!\\n)$",
+          "description": "Python module a loader runs with python -m for the media run."
+        },
+        "arguments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/media_argument"},
+          "allOf": [
+            {"contains": {"type": "string", "pattern": "\\{evidence_manifest\\}"}},
+            {"contains": {"type": "string", "pattern": "\\{media_dir\\}"}},
+            {"contains": {"type": "string", "pattern": "\\{result\\}"}}
+          ]
+        }
+      }
     },
     "exit_codes": {
       "type": "object",
@@ -140,18 +163,60 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "scenario"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {"grading": {"const": "robot"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "integrity"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "media": {
+            "description": "integrity has no media run.",
+            "not": {}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "advisory"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "media": {
+            "description": "advisory has no media run.",
+            "not": {}
+          }
+        }
+      }
     }
   ],
   "$defs": {
     "argument": {
       "type": "string",
-      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result)\\})*(?!\\n)$",
-      "description": "An argument string. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, and {result}. NUL is rejected. A newline is allowed."
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|thresholds)\\})*(?!\\n)$",
+      "description": "An argument string inside a conditional whose if is media_dir. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, and {thresholds}. NUL is rejected. A newline is allowed."
     },
     "argument_without_media_dir": {
       "type": "string",
-      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|result)\\})*(?!\\n)$",
-      "description": "A top-level argument, or an argument in a conditional whose if is not media_dir. It may not contain {media_dir}."
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|result|thresholds)\\})*(?!\\n)$",
+      "description": "A top-level argument, or an argument in a conditional whose if is not media_dir. It may contain {evidence_manifest}, {result}, and {thresholds}. It may not contain {media_dir}, {world}, or {identity}."
+    },
+    "media_argument": {
+      "type": "string",
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|world|identity)\\})*(?!\\n)$",
+      "description": "An argument of the media run. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, {world}, and {identity}. NUL is rejected. A newline is allowed."
     },
     "conditional": {
       "type": "object",
