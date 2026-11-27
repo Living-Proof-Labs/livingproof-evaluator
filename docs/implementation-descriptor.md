@@ -50,13 +50,13 @@ A string may contain only these placeholders, each written with braces:
 | `{evidence_manifest}` | Path of the evidence manifest. It appears in a top-level argument string, and in `media.arguments` when that object is present. |
 | `{media_dir}` | Path of the media directory when the loader has one. On the trial run it is optional. |
 | `{result}` | Path where the implementation writes its result. It appears in a top-level argument string. The consumer substitutes it separately for the media run. |
-| `{thresholds}` | Path of the thresholds file the trial run reads. It may appear in a trial argument string. |
+| `{thresholds}` | Path of the thresholds file a scenario trial reads. Only `kind: scenario` may use it, in a top-level trial argument or inside `then`. `integrity` and `advisory` reject it. |
 | `{world}` | Path of the world file the media run reads. It may appear only in `media.arguments`. |
 | `{identity}` | The evaluator identity the media run records, a commit or an image digest. It may appear only in `media.arguments`. The consumer already resolved that identity when it fetched the descriptor. |
 
 Any other `{...}` token, such as `{trial_dir}`, is rejected. A placeholder that appears only inside `then` does not meet the top-level rule for `{evidence_manifest}` or `{result}`. Those two must each appear in a top-level string, because the run needs a manifest and a path for the result file.
 
-A placeholder for an optional input may appear only inside a conditional whose `if` names that input. A top-level argument string may not contain `{media_dir}`, `{world}`, or `{identity}`. `{media_dir}` may appear in `then` only when `if` is `media_dir`, and it may appear in `media.arguments`. `{thresholds}` may appear in a trial argument string, including inside `then`. It may not appear in `media.arguments`.
+A placeholder for an optional input may appear only inside a conditional whose `if` names that input. A top-level argument string may not contain `{media_dir}`, `{world}`, or `{identity}`. `{media_dir}` may appear in `then` only when `if` is `media_dir`, and it may appear in `media.arguments`. `{thresholds}` may appear in a scenario trial argument, including inside `then`. `integrity` and `advisory` reject it in either place. It may not appear in `media.arguments`.
 
 ## Exit codes
 
@@ -72,7 +72,7 @@ The Run Integrity example maps `2` to `refused`. That mapping belongs to that im
 
 ## Advisory
 
-`kind` may be `advisory`. `grading` is `none`: an advisory implementation does not grade. `result` names `livingproof-evaluator-result/1.<minor>.<patch>` with minor 1.3 or any later 1.x minor. The descriptor names the one version it writes. The format identifier stays `/1`. `{media_dir}` may appear only in a conditional whose `if` is `media_dir`. An advisory descriptor has no `media` run.
+`kind` may be `advisory`. `grading` is `none`: an advisory implementation does not grade. `result` names `livingproof-evaluator-result/1.<minor>.<patch>` with minor 1.3 or any later 1.x minor. The descriptor names the one version it writes. The format identifier stays `/1`. `{media_dir}` may appear only in a conditional whose `if` is `media_dir`. An advisory descriptor has no `media` run and rejects `{thresholds}`.
 
 The result contract for this kind is in [advisory](advisory.md). A consumer MUST refuse a kind it does not know.
 
@@ -80,7 +80,7 @@ The result contract for this kind is in [advisory](advisory.md). A consumer MUST
 
 `kind` may be `scenario`. `grading` is `robot`: this is the implementation that grades the robot. `result` uses the same `livingproof-evaluator-result/1.<minor>.<patch>` rule as any other descriptor. The first-party scenario evaluator writes `livingproof-evaluator-result/1.1.0`. The format identifier stays `/1`.
 
-The trial run is `entrypoint` and `arguments`, as for every kind. The media run is the optional `media` object: `module` and a flat `arguments` list. `integrity` and `advisory` reject that key. A consumer runs the media process only when it has a media directory, and it substitutes `{result}` separately so the two runs write different paths.
+The trial run is `entrypoint` and `arguments`, as for every kind. The media run is the optional `media` object: `module` and a flat `arguments` list. `integrity` and `advisory` reject that key. A consumer runs the media run only when it has both a media directory and a world document; otherwise it runs no media process and writes no media result. The consumer substitutes `{result}` separately so the two runs write different paths.
 
 The worked example is [`examples/implementation/scenario.json`](../examples/implementation/scenario.json). It declares the two commands the scenario package accepts today:
 
@@ -97,4 +97,4 @@ Exit `0` writes a result. The scenario package exits `1` when it refuses the evi
 
 At most one evaluator in a run may grade the robot. A descriptor is one evaluator, so the descriptor cannot state that rule. A consumer that loads a list of descriptors MUST refuse a list with two `grading` values of `robot`.
 
-`tools/validate_contract.py` checks one document and does not see the run's list, so the rule is left to consumers. [`examples/implementation/consumer/two-robot-graders.json`](../examples/implementation/consumer/two-robot-graders.json) is two scenario descriptors that each validate. A consumer test refuses that list before it installs either one.
+The schema validates one descriptor and does not see the run's list, so the rule is left to consumers. [`examples/implementation/consumer/two-robot-graders.json`](../examples/implementation/consumer/two-robot-graders.json) is two scenario descriptors that each validate. A consumer test refuses that list before it installs either one.

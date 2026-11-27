@@ -74,7 +74,7 @@
     "arguments": {
       "type": "array",
       "minItems": 1,
-      "description": "Ordered arguments of the trial run. A top-level string may contain {evidence_manifest}, {result}, and {thresholds}, and may not contain {media_dir}, {world}, or {identity}. {media_dir} may appear only in a conditional whose if is media_dir, or in media.arguments. {world} and {identity} may appear only in media.arguments. {evidence_manifest} and {result} must each appear in a top-level string. Conditionals do not nest.",
+      "description": "Ordered arguments of the trial run. A top-level string may contain {evidence_manifest} and {result}, and may not contain {media_dir}, {world}, or {identity}. {thresholds} may appear in a trial argument, including inside then, only when kind is scenario. integrity and advisory reject it. {media_dir} may appear only in a conditional whose if is media_dir, or in media.arguments. {world} and {identity} may appear only in media.arguments. {evidence_manifest} and {result} must each appear in a top-level string. Conditionals do not nest.",
       "items": {
         "oneOf": [
           {"$ref": "#/$defs/argument_without_media_dir"},
@@ -89,7 +89,7 @@
     "media": {
       "type": "object",
       "additionalProperties": false,
-      "description": "The media run: a second process, used when this implementation grades recordings. integrity and advisory reject this key. The consumer runs it only when it has a media directory, and substitutes {result} separately from the trial run. arguments is a flat list of strings. {evidence_manifest}, {media_dir}, and {result} must each appear. {world} and {identity} may appear here. Conditionals are not used: this object is already the media run.",
+      "description": "The media run: a second process, used when this implementation grades recordings. integrity and advisory reject this key. A consumer runs the media run only when it has both a media directory and a world document; otherwise it runs no media process and writes no media result. The consumer substitutes {result} separately from the trial run. arguments is a flat list of strings. {evidence_manifest}, {media_dir}, and {result} must each appear. {world} and {identity} may appear here. Conditionals are not used: this object is already the media run.",
       "required": ["module", "arguments"],
       "properties": {
         "module": {
@@ -200,23 +200,64 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "integrity"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "arguments": {"$ref": "#/$defs/no_thresholds"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "advisory"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "arguments": {"$ref": "#/$defs/no_thresholds"}
+        }
+      }
     }
   ],
   "$defs": {
     "argument": {
       "type": "string",
       "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|thresholds)\\})*(?!\\n)$",
-      "description": "An argument string inside a conditional whose if is media_dir. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, and {thresholds}. NUL is rejected. A newline is allowed."
+      "description": "An argument string inside a conditional whose if is media_dir. The brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, and {thresholds}. integrity and advisory reject {thresholds}. NUL is rejected. A newline is allowed."
     },
     "argument_without_media_dir": {
       "type": "string",
       "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|result|thresholds)\\})*(?!\\n)$",
-      "description": "A top-level argument, or an argument in a conditional whose if is not media_dir. It may contain {evidence_manifest}, {result}, and {thresholds}. It may not contain {media_dir}, {world}, or {identity}."
+      "description": "A top-level argument, or an argument in a conditional whose if is not media_dir. It may contain {evidence_manifest}, {result}, and {thresholds}. integrity and advisory reject {thresholds}. It may not contain {media_dir}, {world}, or {identity}."
     },
     "media_argument": {
       "type": "string",
       "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|world|identity)\\})*(?!\\n)$",
       "description": "An argument of the media run. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, {world}, and {identity}. NUL is rejected. A newline is allowed."
+    },
+    "no_thresholds": {
+      "description": "integrity and advisory reject {thresholds} in a top-level argument and inside then.",
+      "items": {
+        "not": {
+          "anyOf": [
+            {"type": "string", "pattern": "\\{thresholds\\}"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["then"],
+              "properties": {
+                "if": {},
+                "then": {"contains": {"type": "string", "pattern": "\\{thresholds\\}"}}
+              }
+            }
+          ]
+        }
+      }
     },
     "conditional": {
       "type": "object",

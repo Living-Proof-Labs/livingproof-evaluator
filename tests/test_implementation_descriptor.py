@@ -20,7 +20,7 @@ GUIDE = ROOT / "docs" / "implementation-descriptor.md"
 
 INVALID_PATHS = {
     "unknown-placeholder.json": "arguments/2",
-    "unknown-kind.json": "grading",
+    "scenario-grading-none.json": "grading",
     "unknown-kind-name.json": "kind",
     "extra-field.json": "<root>",
     "missing-exit-0.json": "exit_codes",
@@ -32,7 +32,14 @@ INVALID_PATHS = {
     "advisory-result-minor.json": "result",
     "integrity-media-run.json": "media",
     "advisory-media-run.json": "media",
+    "integrity-thresholds.json": "arguments/1",
+    "advisory-thresholds.json": "arguments/1",
 }
+
+MEDIA_RUN = (
+    "A consumer runs the media run only when it has both a media directory and a world document; "
+    "otherwise it runs no media process and writes no media result."
+)
 
 SCENARIO = EXAMPLES / "implementation" / "scenario.json"
 ONE_GRADER = (
@@ -96,13 +103,15 @@ def test_examples_and_the_guide_use_the_format_const() -> None:
         "invalid/advisory-grading.json",
         "invalid/advisory-media-run.json",
         "invalid/advisory-result-minor.json",
+        "invalid/advisory-thresholds.json",
         "invalid/extra-field.json",
         "invalid/integrity-media-run.json",
+        "invalid/integrity-thresholds.json",
         "invalid/missing-exit-0.json",
         "invalid/nested-extra-field.json",
         "invalid/result-major-2.json",
+        "invalid/scenario-grading-none.json",
         "invalid/unknown-kind-name.json",
-        "invalid/unknown-kind.json",
         "invalid/unknown-placeholder.json",
         "invalid/url-package-source.json",
         "run-integrity.json",
@@ -248,6 +257,13 @@ def _drop_scenario_grading(document: dict) -> dict:
     return _drop_clause(document, kind="scenario", field="grading")
 
 
+def _drop_thresholds_ban(kind: str):
+    def loosen(document: dict) -> dict:
+        return _drop_clause(document, kind=kind, field="arguments")
+
+    return loosen
+
+
 def _drop_media_ban(kind: str):
     def loosen(document: dict) -> dict:
         return _drop_clause(document, kind=kind, field="media")
@@ -270,13 +286,15 @@ _PROBES = [
     ("nested-extra-field.json", _drop_package_additional_properties),
     ("unknown-placeholder.json", _widen_argument_pattern),
     ("missing-exit-0.json", _drop_required_exit_zero),
-    ("unknown-kind.json", _drop_scenario_grading),
+    ("scenario-grading-none.json", _drop_scenario_grading),
     ("unknown-kind-name.json", _open_kind),
     ("absolute-package-source.json", _drop_package_name_pattern),
     ("advisory-grading.json", _drop_advisory_grading),
     ("advisory-result-minor.json", _drop_advisory_result_minor),
     ("integrity-media-run.json", _drop_media_ban("integrity")),
     ("advisory-media-run.json", _drop_media_ban("advisory")),
+    ("integrity-thresholds.json", _drop_thresholds_ban("integrity")),
+    ("advisory-thresholds.json", _drop_thresholds_ban("advisory")),
 ]
 
 
@@ -583,6 +601,23 @@ def test_world_and_identity_stay_on_the_media_run() -> None:
         assert schema_errors(loosened, document) == [], token
 
 
+def test_the_media_run_needs_a_directory_and_a_world() -> None:
+    scenario = GUIDE.read_text().split("## Scenario", 1)[1].split("\n## ", 1)[0]
+    assert MEDIA_RUN in scenario
+    assert MEDIA_RUN in schema()["properties"]["media"]["description"]
+
+
+def test_thresholds_inside_then_are_rejected_for_integrity_and_advisory() -> None:
+    for name, kind in (("run-integrity.json", "integrity"), ("advisory.json", "advisory")):
+        document = load_json(VALID.parent / name)
+        document["arguments"][1]["then"].append("{thresholds}")
+        assert paths(document) == ["arguments/1"], kind
+        assert schema_errors(_drop_thresholds_ban(kind)(schema()), document) == [], kind
+    scenario = load_json(SCENARIO)
+    scenario["arguments"].append({"if": "result", "then": ["{thresholds}"]})
+    assert schema_errors(schema(), scenario) == []
+
+
 def test_thresholds_stay_off_the_media_run() -> None:
     document = load_json(SCENARIO)
     document["media"]["arguments"].append("{thresholds}")
@@ -631,8 +666,5 @@ def test_two_robot_graders_are_each_valid_and_left_to_the_consumer() -> None:
     for text in (guide, raw):
         assert ONE_GRADER in text
     section = guide.split("## One grading evaluator", 1)[1]
-    assert (
-        "`tools/validate_contract.py` checks one document and does not see the run's list"
-        in section
-    )
+    assert "The schema validates one descriptor and does not see the run's list" in section
     assert "examples/implementation/consumer/two-robot-graders.json" in section
