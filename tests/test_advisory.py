@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 
 from validate_contract import consumer_accepts, validate_document
 
@@ -22,7 +21,7 @@ from support import (
 INVALID = EXAMPLES / "advisory" / "invalid"
 RECORDED = EXAMPLES / "advisory" / "recorded-observation"
 BATTERY = EXAMPLES / "advisory" / "battery-thermal"
-BASE = "4dc90a9"
+PUBLISHED = ROOT / "tests" / "data" / "examples-v1.9.1.sha256"
 KIND_SENTENCE = "advisory never grades and produces no robot result or test-system status."
 
 
@@ -334,19 +333,25 @@ def test_a_request_rejects_kind_advisory() -> None:
 
 
 def test_examples_at_v1_9_1_are_unchanged_and_still_validate() -> None:
-    listed = subprocess.check_output(
-        ["git", "ls-tree", "-r", "--name-only", BASE, "examples"],
-        cwd=ROOT,
-        text=True,
-    ).splitlines()
+    r"""Examples published at v1.9.1 (4dc90a9) still match their recorded hashes.
+
+    The manifest is generated once, while that commit is available:
+
+        git ls-tree -r --name-only 4dc90a9 examples | while IFS= read -r path; do
+          printf '%s  %s\n' "$(git show "4dc90a9:$path" | sha256sum | awk '{print $1}')" "$path"
+        done > tests/data/examples-v1.9.1.sha256
+    """
+    listed = []
+    for line in PUBLISHED.read_text(encoding="utf-8").splitlines():
+        digest, relative = line.split("  ", 1)
+        listed.append((digest, relative))
     implementation = load_json(SCHEMA_ROOT / "implementation.schema.json")
     binding = load_json(SCHEMA_ROOT / "binding.schema.json")
     vocabulary = load_json(SCHEMA_ROOT / "vocabulary.schema.json")
     valid = invalid = 0
-    for relative in listed:
+    for digest, relative in listed:
         path = ROOT / relative
-        blob = subprocess.check_output(["git", "show", f"{BASE}:{relative}"], cwd=ROOT)
-        assert path.read_bytes() == blob, relative
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, relative
         if relative.startswith("examples/implementation/invalid/"):
             assert schema_errors(implementation, load_json(path)), relative
             invalid += 1
