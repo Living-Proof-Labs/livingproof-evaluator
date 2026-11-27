@@ -120,6 +120,51 @@ def validate_document(document: dict) -> list[str]:
         errors.extend(_omitted_icon_subset_errors(document))
     if isinstance(document, dict) and "descriptor" in document:
         errors.extend(descriptor_errors(document))
+    errors.extend(_duplicate_trial_index_errors(document))
+    return errors
+
+
+def _whole_index(value: object) -> int | None:
+    """The integer a trial index counts as. A whole-number float is that integer.
+
+    JSON Schema type integer accepts 1.0. Python parses that token as a float,
+    so the repeat check has to normalise it or [1, 1.0] would pass.
+    """
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    if isinstance(value, float) and not value.is_integer():
+        return None
+    return int(value)
+
+
+def _duplicate_trial_index_errors(document: dict) -> list[str]:
+    """Reject a repeated advisory trial index.
+
+    The schema's uniqueItems rejects an identical entry. It cannot require the
+    index values to be unique when the other fields differ, so this check does.
+    """
+    evaluator = document.get("evaluator")
+    if not isinstance(evaluator, dict) or evaluator.get("kind") != "advisory":
+        return []
+    payload = document.get("advisory")
+    if not isinstance(payload, dict):
+        return []
+    trials = payload.get("trials")
+    if not isinstance(trials, list):
+        return []
+    seen: dict[int, int] = {}
+    errors: list[str] = []
+    for position, trial in enumerate(trials):
+        if not isinstance(trial, dict):
+            continue
+        index = _whole_index(trial.get("index"))
+        if index is None:
+            continue
+        previous = seen.get(index)
+        if previous is None:
+            seen[index] = position
+            continue
+        errors.append(f"advisory/trials/{position}/index: repeats advisory/trials/{previous}/index")
     return errors
 
 
