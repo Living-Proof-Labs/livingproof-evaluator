@@ -276,23 +276,53 @@
           "arguments": {"$ref": "#/$defs/no_result_dir"}
         }
       }
+    },
+    {
+      "if": {
+        "properties": {"kind": {"const": "scenario"}},
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "arguments": {"$ref": "#/$defs/no_result"}
+        }
+      }
     }
   ],
   "$defs": {
     "argument": {
       "type": "string",
       "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|result_dir|thresholds)\\})*(?!\\n)$",
-      "description": "An argument string inside a conditional whose if is media_dir. The brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, and {thresholds}. integrity and advisory reject {thresholds}. NUL is rejected. A newline is allowed."
+      "description": "An argument string inside a conditional whose if is media_dir. The brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, {result_dir}, and {thresholds}. integrity and advisory reject {thresholds} and {result_dir}. scenario rejects {result}. NUL is rejected. A newline is allowed."
     },
     "argument_without_media_dir": {
       "type": "string",
       "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|result|result_dir|thresholds)\\})*(?!\\n)$",
-      "description": "A top-level argument, or an argument in a conditional whose if is not media_dir. It may contain {evidence_manifest}, {result}, and {thresholds}. integrity and advisory reject {thresholds}. It may not contain {media_dir}, {world}, or {identity}."
+      "description": "A top-level argument, or an argument in a conditional whose if is not media_dir. The brace tokens it may contain are {evidence_manifest}, {result}, {result_dir}, and {thresholds}. integrity and advisory reject {thresholds} and {result_dir}. scenario rejects {result}. It may not contain {media_dir}, {world}, or {identity}."
     },
     "media_argument": {
       "type": "string",
-      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result|result_dir|world|identity)\\})*(?!\\n)$",
-      "description": "An argument of the media run. The only brace tokens it may contain are {evidence_manifest}, {media_dir}, {result}, {result_dir}, {world}, and {identity}. NUL is rejected. A newline is allowed."
+      "pattern": "^(?:[^{}\\u0000]|\\{(?:evidence_manifest|media_dir|result_dir|world|identity)\\})*(?!\\n)$",
+      "description": "An argument of the media run. The brace tokens it may contain are {evidence_manifest}, {media_dir}, {result_dir}, {world}, and {identity}. It may not contain {result}. NUL is rejected. A newline is allowed."
+    },
+    "no_result": {
+      "description": "scenario rejects {result} in a top-level argument and inside then. {result} is the integrity and advisory result file.",
+      "items": {
+        "not": {
+          "anyOf": [
+            {"type": "string", "pattern": "\\{result\\}"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["then"],
+              "properties": {
+                "if": {},
+                "then": {"contains": {"type": "string", "pattern": "\\{result\\}"}}
+              }
+            }
+          ]
+        }
+      }
     },
     "no_result_dir": {
       "description": "integrity and advisory reject {result_dir} in a top-level argument and inside then. {result} stays the path of one result file.",

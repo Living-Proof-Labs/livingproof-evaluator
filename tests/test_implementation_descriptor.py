@@ -21,6 +21,9 @@ GUIDE = ROOT / "docs" / "implementation-descriptor.md"
 INVALID_PATHS = {
     "unknown-placeholder.json": "arguments/2",
     "scenario-grading-none.json": "grading",
+    "scenario-result.json": "arguments/1",
+    "scenario-result-media.json": "media/arguments/2",
+    "scenario-result-then.json": "arguments/1",
     "unknown-kind-name.json": "kind",
     "extra-field.json": "<root>",
     "missing-exit-0.json": "exit_codes",
@@ -111,6 +114,9 @@ def test_examples_and_the_guide_use_the_format_const() -> None:
         "invalid/nested-extra-field.json",
         "invalid/result-major-2.json",
         "invalid/scenario-grading-none.json",
+        "invalid/scenario-result-media.json",
+        "invalid/scenario-result-then.json",
+        "invalid/scenario-result.json",
         "invalid/unknown-kind-name.json",
         "invalid/unknown-kind.json",
         "invalid/unknown-placeholder.json",
@@ -181,7 +187,7 @@ def test_the_schema_identity_and_closed_objects() -> None:
         r"^(?:[^{}\u0000]|\{(?:evidence_manifest|result|result_dir|thresholds)\})*(?!\n)$"
     )
     assert document["$defs"]["media_argument"]["pattern"] == (
-        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|media_dir|result|result_dir|world|identity)\})*(?!\n)$"
+        r"^(?:[^{}\u0000]|\{(?:evidence_manifest|media_dir|result_dir|world|identity)\})*(?!\n)$"
     )
     exit_codes = document["properties"]["exit_codes"]
     assert exit_codes["required"] == ["0"]
@@ -275,6 +281,10 @@ def _drop_advisory_result_minor(document: dict) -> dict:
     return _drop_clause(document, kind="advisory", field="result")
 
 
+def _drop_no_result(document: dict) -> dict:
+    return _drop_ref_clause("scenario", "#/$defs/no_result")(document)
+
+
 def _drop_package_name_pattern(document: dict) -> dict:
     copied = copy.deepcopy(document)
     del copied["properties"]["package"]["properties"]["name"]["pattern"]
@@ -287,6 +297,12 @@ _PROBES = [
     ("unknown-placeholder.json", _widen_argument_pattern),
     ("missing-exit-0.json", _drop_required_exit_zero),
     ("scenario-grading-none.json", _drop_scenario_grading),
+    ("scenario-result.json", _drop_no_result),
+    ("scenario-result-then.json", _drop_no_result),
+    (
+        "scenario-result-media.json",
+        lambda document: _allow_token(document, "media_argument", "result"),
+    ),
     ("unknown-kind-name.json", _open_kind),
     ("absolute-package-source.json", _drop_package_name_pattern),
     ("advisory-grading.json", _drop_advisory_grading),
@@ -589,7 +605,7 @@ def _drop_media_contains(document: dict, token: str) -> dict:
 def _allow_token(document: dict, definition: str, token: str) -> dict:
     copied = copy.deepcopy(document)
     pattern = copied["$defs"][definition]["pattern"]
-    copied["$defs"][definition]["pattern"] = pattern.replace("result", f"result|{token}", 1)
+    copied["$defs"][definition]["pattern"] = pattern.replace("\\{(?:", "\\{(?:" + token + "|", 1)
     return copied
 
 
@@ -727,6 +743,83 @@ def test_result_dir_is_scenario_only() -> None:
     assert schema_errors(_drop_contains_clause("scenario", "result_dir")(schema()), omitted) == []
 
 
+def test_advisory_requires_a_top_level_result_file() -> None:
+    missing = load_json(VALID.parent / "advisory.json")
+    missing["arguments"] = [item for item in missing["arguments"] if item != "{result}"]
+    nested = load_json(VALID.parent / "advisory.json")
+    nested["arguments"] = [item for item in nested["arguments"] if item != "{result}"]
+    nested["arguments"].append({"if": "result", "then": ["{result}"]})
+    for document in (missing, nested):
+        assert paths(document) == ["arguments"]
+    loosened = _drop_contains_clause("advisory", "result")(schema())
+    assert schema_errors(loosened, missing) == []
+    assert schema_errors(loosened, nested) == []
+
+
+@pytest.mark.parametrize("name", ["run-integrity.json", "advisory.json"])
+@pytest.mark.parametrize("guard", ["evidence_manifest", "media_dir", "result"])
+def test_result_dir_inside_then_is_rejected(name: str, guard: str) -> None:
+    document = load_json(VALID.parent / name)
+    document["arguments"].append({"if": guard, "then": ["{result_dir}"]})
+    assert paths(document) == ["arguments/4"]
+    loosened = schema()
+    branches = loosened["$defs"]["no_result_dir"]["items"]["not"]["anyOf"]
+    loosened["$defs"]["no_result_dir"]["items"]["not"]["anyOf"] = [
+        item for item in branches if item.get("type") != "object"
+    ]
+    assert schema_errors(loosened, document) == []
+
+
+def test_result_dir_contains_requires_a_string() -> None:
+    only_inside_then = load_json(SCENARIO)
+    only_inside_then["arguments"] = [
+        "{evidence_manifest}",
+        {"if": "result", "then": ["{result_dir}"]},
+        "--thresholds",
+        "{thresholds}",
+    ]
+    missing = load_json(SCENARIO)
+    missing["arguments"] = [
+        "{evidence_manifest}",
+        {"if": "media_dir", "then": ["--kept"]},
+        "--thresholds",
+        "{thresholds}",
+    ]
+    for document in (only_inside_then, missing):
+        assert paths(document) == ["arguments"]
+    loosened = schema()
+    for clause in loosened["allOf"]:
+        contains = (
+            clause.get("then", {}).get("properties", {}).get("arguments", {}).get("contains", {})
+        )
+        if contains.get("pattern") == "\\{result_dir\\}":
+            del contains["type"]
+    assert schema_errors(loosened, only_inside_then) == []
+    assert schema_errors(loosened, missing) == []
+
+
+def test_scenario_refuses_result() -> None:
+    for name in ("scenario-result.json", "scenario-result-then.json", "scenario-result-media.json"):
+        assert schema_errors(schema(), load_json(INVALID / name))
+
+
+def test_the_released_unknown_kind_file_fails_at_arguments_and_grading() -> None:
+    # v1.9.1 shipped this path with kind scenario before that kind existed.
+    # It keeps those bytes: grading is none, a top-level {result} is present, and
+    # {result_dir} is absent. Do not edit it to make one of those failures go away.
+    assert paths(load_json(INVALID / "unknown-kind.json")) == [
+        "arguments",
+        "arguments/3",
+        "grading",
+    ]
+
+
+def test_both_not_results_sentences_stay() -> None:
+    not_results = "`thresholds.json` and any other file in the directory are not results."
+    assert GUIDE.read_text().count(not_results) == 2
+    assert not_results in schema()["properties"]["media"]["description"]
+
+
 def test_the_scenario_descriptor_is_walk_hallway_only() -> None:
     scenario = GUIDE.read_text().split("## Scenario", 1)[1].split("\n## ", 1)[0]
     assert HALLWAY_ONLY in scenario
@@ -786,6 +879,37 @@ def test_media_must_be_an_object(media: object) -> None:
     loosened = schema()
     del loosened["properties"]["media"]["type"]
     assert schema_errors(loosened, document) == []
+
+
+def test_argument_descriptions_name_their_tokens() -> None:
+    definitions = schema()["$defs"]
+    expected = {
+        "argument": [
+            "{evidence_manifest}",
+            "{media_dir}",
+            "{result_dir}",
+            "{thresholds}",
+        ],
+        "argument_without_media_dir": [
+            "{evidence_manifest}",
+            "{result_dir}",
+            "{thresholds}",
+        ],
+        "media_argument": [
+            "{evidence_manifest}",
+            "{media_dir}",
+            "{result_dir}",
+            "{world}",
+            "{identity}",
+        ],
+    }
+    for name, tokens in expected.items():
+        description = definitions[name]["description"]
+        for token in tokens:
+            assert token in description, (name, token)
+    assert "scenario rejects {result}" in definitions["argument"]["description"]
+    assert "scenario rejects {result}" in definitions["argument_without_media_dir"]["description"]
+    assert "may not contain {result}" in definitions["media_argument"]["description"]
 
 
 def test_the_thresholds_placeholder_row() -> None:

@@ -49,13 +49,13 @@ A string may contain only these placeholders, each written with braces:
 | --- | --- |
 | `{evidence_manifest}` | Path of the evidence manifest. It appears in a top-level argument string, and in `media.arguments` when that object is present. |
 | `{media_dir}` | Path of the media directory when the loader has one. On the trial run it is optional. |
-| `{result}` | Path of one result file. integrity and advisory write that file. It is not a directory. It appears in a top-level argument string. |
+| `{result}` | Path of one result file. Only integrity and advisory may use it. integrity and advisory write that file. It is not a directory. It appears in a top-level argument string. scenario rejects it. |
 | `{result_dir}` | A directory a scenario run writes into. Only `kind: scenario` may use it. The per-trial result files in that directory are the results, and each one carries the declared result format. `thresholds.json` and any other file in the directory are not results. |
 | `{thresholds}` | Path of the thresholds file a scenario trial reads. Only `kind: scenario` may use it, in a top-level trial argument or inside `then`. `integrity` and `advisory` reject it. |
 | `{world}` | Path of the world file the media run reads. It may appear only in `media.arguments`. |
 | `{identity}` | The `--identity` string the media CLI records. The package stores that string as the evaluator input URI. Today's value is `git+https://github.com/<owner>/<repo>@<commit>`. The flag also accepts a commit or an image digest. It may appear only in `media.arguments`. |
 
-Any other `{...}` token, such as `{trial_dir}`, is rejected. A placeholder that appears only inside `then` does not meet the top-level rule for `{evidence_manifest}` or `{result}`. `{evidence_manifest}` must appear in a top-level string. integrity and advisory must also include `{result}` there, because the run needs a manifest and a path for the result file. A scenario run names `{result_dir}` there instead.
+Any other `{...}` token, such as `{trial_dir}`, is rejected. A placeholder that appears only inside `then` does not meet the top-level rule for `{evidence_manifest}` or `{result}`. `{evidence_manifest}` must appear in a top-level string. integrity and advisory must also include `{result}` there, because the run needs a manifest and a path for the result file. A scenario run names `{result_dir}` there instead, and rejects `{result}`.
 
 A placeholder for an optional input may appear only inside a conditional whose `if` names that input. A top-level argument string may not contain `{media_dir}`, `{world}`, or `{identity}`. `{media_dir}` may appear in `then` only when `if` is `media_dir`, and it may appear in `media.arguments`. `{thresholds}` may appear in a scenario trial argument, including inside `then`. `integrity` and `advisory` reject it in either place. It may not appear in `media.arguments`.
 
