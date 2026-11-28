@@ -1,0 +1,25 @@
+{
+  "format": "livingproof-evaluator-implementation/1",
+  "id": "recorded-observation",
+  "kind": "advisory",
+  "grading": "none",
+  "package": {"name": "recorded-observation"},
+  "runtime": {"python": "3.12"},
+  "entrypoint": {"module": "recorded_observation"},
+  "arguments": [
+    "{evidence_manifest}",
+    {"if": "media_dir", "then": ["--media", "{media_dir}"]},
+    "--out",
+    "{result}"
+  ],
+  "media": {
+    "module": "recorded_observation.media",
+    "arguments": [
+      "{evidence_manifest}",
+      "{media_dir}",
+      "{result_dir}"
+    ]
+  },
+  "exit_codes": {"0": "result", "2": "refused"},
+  "result": "livingproof-evaluator-result/1.3.0"
+}

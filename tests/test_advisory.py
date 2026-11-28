@@ -78,7 +78,7 @@ def test_kind_description_says_advisory_never_grades() -> None:
 def test_recorded_observation_and_battery_thermal_validate_on_the_same_schema() -> None:
     implementation = load_json(SCHEMA_ROOT / "implementation.schema.json")
     assert implementation["properties"]["id"]["$ref"] == "defs.schema.json#/$defs/slug"
-    assert implementation["properties"]["kind"]["enum"] == ["integrity", "advisory"]
+    assert implementation["properties"]["kind"]["enum"] == ["integrity", "advisory", "scenario"]
     for name in ("advisory.json", "battery-thermal.json"):
         assert schema_errors(implementation, load_json(EXAMPLES / "implementation" / name)) == []
     recorded = _recorded()
@@ -371,6 +371,8 @@ def test_examples_at_v1_9_1_are_unchanged_and_still_validate() -> None:
         git ls-tree -r --name-only 4dc90a9 examples | while IFS= read -r path; do
           printf '%s  %s\n' "$(git show "4dc90a9:$path" | sha256sum | awk '{print $1}')" "$path"
         done > tests/data/examples-v1.9.1.sha256
+
+    unknown-kind.json stays at the path v1.9.1 released. scenario-grading-none.json is the grading probe and is not that file.
     """
     listed = []
     for line in PUBLISHED.read_text(encoding="utf-8").splitlines():
