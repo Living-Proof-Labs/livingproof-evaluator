@@ -8,6 +8,7 @@ const and do not spell it themselves.
 from __future__ import annotations
 
 import copy
+import re
 
 import pytest
 
@@ -881,35 +882,33 @@ def test_media_must_be_an_object(media: object) -> None:
     assert schema_errors(loosened, document) == []
 
 
+def _placeholder_names(pattern: str) -> list[str]:
+    found = re.search(r"\\{\(\?:([^)]+)\)\\}", pattern)
+    assert found is not None, pattern
+    return found.group(1).split("|")
+
+
+def _described_names(description: str) -> list[str]:
+    sentence = description.split("The brace tokens it may contain are ", 1)[1].split(".", 1)[0]
+    return re.findall(r"\{([A-Za-z0-9_]+)\}", sentence)
+
+
 def test_argument_descriptions_name_their_tokens() -> None:
-    definitions = schema()["$defs"]
-    expected = {
-        "argument": [
-            "{evidence_manifest}",
-            "{media_dir}",
-            "{result_dir}",
-            "{thresholds}",
-        ],
-        "argument_without_media_dir": [
-            "{evidence_manifest}",
-            "{result_dir}",
-            "{thresholds}",
-        ],
-        "media_argument": [
-            "{evidence_manifest}",
-            "{media_dir}",
-            "{result_dir}",
-            "{world}",
-            "{identity}",
-        ],
-    }
-    for name, tokens in expected.items():
-        description = definitions[name]["description"]
-        for token in tokens:
-            assert token in description, (name, token)
-    assert "scenario rejects {result}" in definitions["argument"]["description"]
-    assert "scenario rejects {result}" in definitions["argument_without_media_dir"]["description"]
-    assert "may not contain {result}" in definitions["media_argument"]["description"]
+    for name in ("argument", "argument_without_media_dir", "media_argument"):
+        definition = schema()["$defs"][name]
+        assert _described_names(definition["description"]) == _placeholder_names(
+            definition["pattern"]
+        ), name
+
+
+def test_the_result_placeholder_row() -> None:
+    guide = GUIDE.read_text()
+    assert "Only integrity and advisory may use it." in guide
+    assert "scenario rejects it." in guide
+    assert "A scenario run names `{result_dir}` there instead, and rejects `{result}`." in guide
+    assert 'On a scenario run, `result` is never present, so `if: "result"` never fires there.' in (
+        guide
+    )
 
 
 def test_the_thresholds_placeholder_row() -> None:
